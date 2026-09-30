@@ -9,7 +9,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Memo">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="icon.svg?v=2" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
 <style>
 /*
   配色について
@@ -221,6 +222,26 @@ footer button {
   border: 1px solid var(--border); background: var(--surface); color: var(--sub);
   border-radius: 999px; padding: 7px 14px; font-size: 12.5px;
 }
+.sync-status { font-size: 11px; color: var(--sub); margin-top: 2px; }
+.sync-status.err { color: var(--danger); }
+.panel {
+  display: none; margin-top: 16px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 16px; font-size: 13.5px; line-height: 1.75; box-shadow: var(--shadow);
+}
+.panel.show { display: block; }
+.panel h3 { margin: 0 0 8px; font-size: 15px; }
+.panel ol { margin: 6px 0 12px; padding-left: 20px; }
+.panel a { color: var(--accent); }
+.panel input {
+  width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 9px 12px; font-size: 14px; outline: none; margin: 4px 0 10px;
+}
+.panel .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.panel .btns button {
+  border: 1px solid var(--border); background: var(--surface-2); border-radius: 999px; padding: 7px 16px; font-size: 13px;
+}
+.panel .btns .primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.panel .note { color: var(--sub); font-size: 12px; }
 .toast {
   position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 24px);
   transform: translateX(-50%) translateY(20px);
@@ -238,7 +259,7 @@ footer button {
       <div class="today-label">TODAY</div>
       <div class="today-date" id="todayDate"></div>
     </div>
-    <div class="stats" id="stats"></div>
+    <div class="stats"><div id="stats"></div><div class="sync-status" id="syncStatus"></div></div>
   </header>
 
   <div class="composer">
@@ -262,12 +283,37 @@ footer button {
   <main id="list"></main>
 
   <footer>
+    <button id="syncBtn">☁️ 同期設定</button>
     <button id="themeBtn"></button>
     <button id="copyBtn">未転記をコピー</button>
     <button id="exportBtn">バックアップ保存</button>
     <button id="importBtn">バックアップ読込</button>
     <input type="file" id="importFile" accept="application/json" hidden>
   </footer>
+
+  <section class="panel" id="syncPanel">
+    <h3>☁️ 自動同期（GitHub）</h3>
+    <div id="syncOff">
+      iPhone・パソコン・Safari・ホーム画面のどこで開いても同じメモが見られるようになります。
+      メモはあなたの GitHub アカウントの「非公開 Gist」に保存されます。
+      <ol>
+        <li><a href="https://github.com/settings/tokens/new?scopes=gist&amp;description=Memo%20sync" target="_blank" rel="noopener">このリンク</a>を開く（GitHub のトークン作成画面）</li>
+        <li>Expiration を <b>No expiration</b> にする</li>
+        <li>「gist」にだけチェックが入っていることを確認して、一番下の <b>Generate token</b></li>
+        <li>表示された <b>ghp_</b> で始まる文字をコピーして、下に貼り付け</li>
+      </ol>
+      <input id="tokenIn" type="password" placeholder="ghp_..." autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="btns"><button class="primary" id="tokenSave">同期をはじめる</button></div>
+      <p class="note">2台目以降も同じトークンを貼るだけで、同じメモにつながります。トークンはこの端末の中にだけ保存されます。</p>
+    </div>
+    <div id="syncOn">
+      同期中です。書いたり消したりすると自動で保存され、アプリを開くたびに他の端末の変更も取り込みます。
+      <div class="btns" style="margin-top:10px">
+        <button class="primary" id="syncNowBtn">今すぐ同期</button>
+        <button id="tokenClear">この端末の同期をやめる</button>
+      </div>
+    </div>
+  </section>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -395,9 +441,12 @@ const PREF = 'memo.prefs.v1';
 function load(key, fallback) {
   try { const v = JSON.parse(localStorage.getItem(key)); return v ?? fallback; } catch { return fallback; }
 }
-function save() {
+function save(local) {
   try { localStorage.setItem(KEY, JSON.stringify(items)); } catch { toast('保存できませんでした'); }
+  if (!local) scheduleSync();
 }
+const live = () => items.filter(it => !it.deleted);
+const touch = it => { it.updatedAt = Date.now(); };
 function savePrefs() {
   try { localStorage.setItem(PREF, JSON.stringify(prefs)); } catch {}
 }
@@ -443,7 +492,7 @@ const catVar = cat => `--cat: var(--c-${CATS[cat].color})`;
 
 function visibleItems() {
   const q = $('search').value.trim().toLowerCase();
-  return items.filter(it =>
+  return live().filter(it =>
     (!prefs.undoneOnly || !it.done) &&
     (!q || it.term.toLowerCase().includes(q) || (it.meaning || '').toLowerCase().includes(q) || CATS[it.cat].label.includes(q))
   ).sort((a, b) => b.createdAt - a.createdAt);
@@ -452,7 +501,7 @@ function visibleItems() {
 function renderItem(it, showTag) {
   const li = el('li', { class: 'item' + (it.done ? ' done' : '') + (openId === it.id ? ' open' : ''), style: catVar(it.cat) });
   const check = el('button', { class: 'check', title: '暗記に入れた', 'aria-label': '暗記に入れた', onclick: () => {
-    it.done = !it.done; save(); render();
+    it.done = !it.done; touch(it); save(); render();
   } }, '✓');
   const body = el('div', { class: 'body', onclick: () => { openId = openId === it.id ? null : it.id; render(); } },
     el('div', { class: 'term' }, it.term),
@@ -484,12 +533,14 @@ function renderItem(it, showTag) {
       it.meaning = meanIn.value.trim();
       if (catChanged) { it.cat = sel.value; it.auto = false; }
       else if (termChanged && it.auto !== false) it.cat = classify(term);
-      openId = null; save(); render();
+      touch(it); openId = null; save(); render();
       toast(catChanged ? `「${CATS[it.cat].label}」に移動しました` : '保存しました');
     } }, '保存');
     const delBtn = el('button', { class: 'small del', onclick: () => {
       if (!confirm(`「${it.term}」を削除しますか？`)) return;
-      items = items.filter(x => x.id !== it.id); openId = null; save(); render();
+      // 他の端末にも「消した」ことを伝えるため、印だけ残す
+      Object.assign(it, { deleted: true, term: '', meaning: '' }); touch(it);
+      openId = null; save(); render();
     } }, '削除');
     li.append(el('div', { class: 'editor' }, termIn, meanIn, sel, saveBtn, delBtn));
   }
@@ -546,12 +597,12 @@ function renderByDay(list, root) {
 function render() {
   const now = Date.now();
   $('todayDate').textContent = fmtLong(now);
-  const todayN = items.filter(it => dayKey(it.createdAt) === dayKey(now)).length;
-  const undone = items.filter(it => !it.done).length;
+  const todayN = live().filter(it => dayKey(it.createdAt) === dayKey(now)).length;
+  const undone = live().filter(it => !it.done).length;
   $('stats').innerHTML = '';
   $('stats').append(
     el('div', {}, '今日 ', el('b', {}, String(todayN)), ' 件'),
-    el('div', {}, '未転記 ', el('b', {}, String(undone)), ' / 全 ', el('b', {}, String(items.length)))
+    el('div', {}, '未転記 ', el('b', {}, String(undone)), ' / 全 ', el('b', {}, String(live().length)))
   );
 
   $('viewCat').classList.toggle('on', prefs.view === 'cat');
@@ -566,7 +617,7 @@ function render() {
   const list = visibleItems();
   if (!list.length) {
     root.append(el('div', { class: 'empty' },
-      items.length ? '該当するメモはありません' : 'まだメモがありません。\n上の欄に単語やフレーズを入れてみてください。'));
+      live().length ? '該当するメモはありません' : 'まだメモがありません。\n上の欄に単語やフレーズを入れてみてください。'));
     root.firstChild.style.whiteSpace = 'pre-line';
     return;
   }
@@ -593,7 +644,7 @@ function addFromInput() {
   const now = Date.now();
   const added = lines.map((p, i) => ({
     id: now.toString(36) + i + Math.random().toString(36).slice(2, 6),
-    term: p.term, meaning: p.meaning, cat: classify(p.term), auto: true, done: false, createdAt: now + i,
+    term: p.term, meaning: p.meaning, cat: classify(p.term), auto: true, done: false, createdAt: now + i, updatedAt: now,
   }));
   items.push(...added);
   save();
@@ -619,7 +670,7 @@ $('search').addEventListener('input', render);
 $('themeBtn').onclick = () => { prefs.theme = prefs.theme === 'light' ? 'dark' : 'light'; savePrefs(); render(); };
 
 $('copyBtn').onclick = async () => {
-  const undone = items.filter(it => !it.done).sort((a, b) => a.createdAt - b.createdAt);
+  const undone = live().filter(it => !it.done).sort((a, b) => a.createdAt - b.createdAt);
   if (!undone.length) { toast('未転記のメモはありません'); return; }
   const text = undone.map(it => it.meaning ? `${it.term}\t${it.meaning}` : it.term).join('\n');
   try { await navigator.clipboard.writeText(text); }
@@ -628,12 +679,12 @@ $('copyBtn').onclick = async () => {
     document.execCommand('copy'); ta.remove();
   }
   if (confirm(`${undone.length}件をコピーしました。\n暗記アプリに入れたら「転記済み」にしますか？`)) {
-    undone.forEach(it => it.done = true); save(); render();
+    undone.forEach(it => { it.done = true; touch(it); }); save(); render();
   }
 };
 
 $('exportBtn').onclick = () => {
-  const blob = new Blob([JSON.stringify({ app: 'memo', version: 1, items }, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify({ app: 'memo', version: 1, items: live() }, null, 2)], { type: 'application/json' });
   const a = el('a', { href: URL.createObjectURL(blob), download: `memo-backup-${new Date().toISOString().slice(0, 10)}.json` });
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
@@ -651,11 +702,147 @@ $('importFile').onchange = async e => {
     for (const it of incoming) {
       if (ids.has(it.id)) continue;
       if (!CATS[it.cat]) it.cat = classify(it.term);
+      it.updatedAt = it.updatedAt || it.createdAt || Date.now();
       items.push(it); n++;
     }
     save(); render(); toast(`${n}件読み込みました`);
   } catch { toast('読み込めませんでした'); }
 };
+
+/* ---------- 自動同期（GitHub の非公開 Gist） ---------- */
+const TOKEN_KEY = 'memo.sync.token';
+const GIST_KEY = 'memo.sync.gist';
+const FILE = 'memo-data.json';
+const API = 'https://api.github.com';
+const lsGet = k => { try { return localStorage.getItem(k); } catch { return null; } };
+const lsSet = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} };
+let syncing = false, syncAgain = false, syncTimer, lastSync = null, syncErr = null;
+
+async function gh(path, opts = {}) {
+  const res = await fetch(API + path, {
+    ...opts,
+    cache: 'no-store',
+    headers: {
+      Accept: 'application/vnd.github+json',
+      Authorization: 'Bearer ' + lsGet(TOKEN_KEY),
+      ...(opts.body ? { 'Content-Type': 'application/json' } : {}),
+    },
+  });
+  if (res.status === 401) throw new Error('トークンが無効です');
+  if (!res.ok) throw new Error('GitHub エラー ' + res.status);
+  return res.json();
+}
+
+async function findOrCreateGist() {
+  let id = lsGet(GIST_KEY);
+  if (id) return id;
+  for (let page = 1; page <= 10; page++) {
+    const list = await gh(`/gists?per_page=100&page=${page}`);
+    const hit = list.find(g => g.files && g.files[FILE]);
+    if (hit) { lsSet(GIST_KEY, hit.id); return hit.id; }
+    if (list.length < 100) break;
+  }
+  const created = await gh('/gists', {
+    method: 'POST',
+    body: JSON.stringify({ description: 'Memo app data（消さないでください）', public: false,
+      files: { [FILE]: { content: JSON.stringify({ app: 'memo', version: 1, items: [] }) } } }),
+  });
+  lsSet(GIST_KEY, created.id);
+  return created.id;
+}
+
+async function readRemote(id) {
+  const g = await gh('/gists/' + id);
+  const f = g.files && g.files[FILE];
+  if (!f) return [];
+  let text = f.content;
+  if (f.truncated) text = await (await fetch(f.raw_url, { cache: 'no-store' })).text();
+  try { const d = JSON.parse(text); return Array.isArray(d) ? d : d.items || []; } catch { return []; }
+}
+
+// id ごとに新しい方を残す
+function mergeItems(a, b) {
+  const map = new Map();
+  const ver = it => it.updatedAt || it.createdAt || 0;
+  for (const it of [...a, ...b]) {
+    if (!it || !it.id) continue;
+    const cur = map.get(it.id);
+    if (!cur || ver(it) > ver(cur)) map.set(it.id, it);
+  }
+  return [...map.values()];
+}
+const snapshot = arr => JSON.stringify([...arr].sort((x, y) => (x.id < y.id ? -1 : 1)));
+
+async function syncNow() {
+  if (!lsGet(TOKEN_KEY)) return;
+  if (syncing) { syncAgain = true; return; }
+  syncing = true; syncErr = null; showSync();
+  try {
+    let id = await findOrCreateGist();
+    let remote;
+    try { remote = await readRemote(id); }
+    catch (e) {
+      if (!/404/.test(e.message)) throw e;
+      lsSet(GIST_KEY, null); id = await findOrCreateGist(); remote = await readRemote(id);
+    }
+    const merged = mergeItems(items, remote);
+    if (snapshot(merged) !== snapshot(items)) {
+      // 編集中の画面が古いデータを掴まないよう、同じ id のオブジェクトは使い回す
+      const byId = new Map(items.map(x => [x.id, x]));
+      items = merged.map(m => {
+        const l = byId.get(m.id);
+        if (!l || l === m) return m;
+        for (const k of Object.keys(l)) delete l[k];
+        return Object.assign(l, m);
+      });
+      save(true);
+      if (openId === null) render();
+    }
+    if (snapshot(merged) !== snapshot(remote)) {
+      await gh('/gists/' + id, { method: 'PATCH',
+        body: JSON.stringify({ files: { [FILE]: { content: JSON.stringify({ app: 'memo', version: 1, items: merged }) } } }) });
+    }
+    lastSync = Date.now();
+  } catch (e) {
+    syncErr = navigator.onLine === false ? 'オフライン（あとで同期します）' : e.message;
+  } finally {
+    syncing = false; showSync();
+    if (syncAgain) { syncAgain = false; syncNow(); }
+  }
+}
+function scheduleSync() {
+  if (!lsGet(TOKEN_KEY)) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncNow, 800);
+}
+function showSync() {
+  const st = $('syncStatus');
+  const on = !!lsGet(TOKEN_KEY);
+  $('syncOff').style.display = on ? 'none' : '';
+  $('syncOn').style.display = on ? '' : 'none';
+  st.classList.toggle('err', !!syncErr);
+  if (!on) { st.textContent = ''; return; }
+  if (syncing) st.textContent = '☁️ 同期中…';
+  else if (syncErr) st.textContent = '⚠️ ' + syncErr;
+  else if (lastSync) { const d = new Date(lastSync); st.textContent = `☁️ 同期済み ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`; }
+  else st.textContent = '☁️ 同期オン';
+}
+$('syncBtn').onclick = () => { $('syncPanel').classList.toggle('show'); showSync(); $('syncPanel').scrollIntoView({ behavior: 'smooth' }); };
+$('tokenSave').onclick = async () => {
+  const t = $('tokenIn').value.trim();
+  if (!t) return;
+  lsSet(TOKEN_KEY, t); lsSet(GIST_KEY, null); $('tokenIn').value = '';
+  await syncNow();
+  if (syncErr) { toast('同期できませんでした：' + syncErr); lsSet(TOKEN_KEY, null); syncErr = null; showSync(); }
+  else { toast('同期をはじめました'); $('syncPanel').classList.remove('show'); }
+};
+$('syncNowBtn').onclick = () => syncNow();
+$('tokenClear').onclick = () => {
+  if (!confirm('この端末の同期をやめますか？（メモはこの端末にも GitHub にも残ります）')) return;
+  lsSet(TOKEN_KEY, null); lsSet(GIST_KEY, null); lastSync = null; syncErr = null; showSync();
+};
+window.addEventListener('online', syncNow);
+setInterval(() => { if (!document.hidden) syncNow(); }, 60 * 1000);
 
 let toastTimer;
 function toast(msg) {
@@ -669,11 +856,13 @@ let shownDay = dayKey(Date.now());
 function refreshIfNewDay() {
   if (dayKey(Date.now()) !== shownDay && openId === null) { shownDay = dayKey(Date.now()); render(); }
 }
-document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshIfNewDay(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { refreshIfNewDay(); syncNow(); } });
 setInterval(refreshIfNewDay, 60 * 1000);
 
 render();
 updateHint();
+showSync();
+syncNow();
 </script>
 </body>
 </html>
