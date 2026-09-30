@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Memo</title>
+<meta name="theme-color" content="#121A2B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Memo">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+/*
+  配色について
+  ・ミッドナイトネイビー（初期）: 深い紺の背景に、真っ白ではなく少し紫がかった
+    オフホワイトの文字。夜や疲れている時でも目に刺さらず、落ち着いて見られる色。
+  ・ラベンダーミスト: ほんのり紫がかった白の背景に、ネイビーの文字。
+    明るい場所・朝向け。純白よりまぶしさが少ない。
+  ・ジャンル色は彩度を抑えたパステル。「動詞はいつもアプリコット」のように
+    英語・日本語で同じ品詞は同じ色にして、色でも覚えられるようにしている。
+*/
+:root {
+  --bg: #121A2B;          /* ミッドナイトネイビー */
+  --surface: #1A2438;     /* カード */
+  --surface-2: #222E46;   /* 入力欄・押した時 */
+  --border: #2E3B57;
+  --text: #E8E6F0;        /* ラベンダーがかったオフホワイト */
+  --sub: #98A3BC;         /* ブルーグレー */
+  --accent: #8FB8E8;      /* やわらかいライトブルー */
+  --accent-ink: #121A2B;
+  --danger: #E89A9A;
+  --shadow: 0 1px 0 rgba(255,255,255,.03), 0 8px 24px rgba(0,0,0,.25);
+
+  --c-blue: #8FB8E8;      /* 文・フレーズ */
+  --c-teal: #7FCBC4;      /* チャンク */
+  --c-lavender: #B7A4E8;  /* 熟語・句動詞 */
+  --c-apricot: #E8B98F;   /* 動詞 */
+  --c-sage: #A8C98F;      /* 名詞 */
+  --c-rose: #E8A4B8;      /* 形容詞 */
+  --c-butter: #E3CF8C;    /* 副詞 */
+  --c-slate: #A3AECB;     /* 前置詞・接続詞 */
+  --c-coral: #EFA08A;     /* スラング */
+  --c-gray: #8D96AB;      /* その他 */
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --bg: #F4F2F8;          /* ラベンダーミスト（パープルホワイト） */
+  --surface: #FFFFFF;
+  --surface-2: #ECE9F3;
+  --border: #DDD8E8;
+  --text: #25304A;        /* ネイビーインク */
+  --sub: #6B7089;
+  --accent: #4A6FA5;      /* くすみブルー */
+  --accent-ink: #FFFFFF;
+  --danger: #B85A5A;
+  --shadow: 0 1px 2px rgba(37,48,74,.06), 0 6px 18px rgba(37,48,74,.06);
+
+  --c-blue: #4A77B4;
+  --c-teal: #2F8C84;
+  --c-lavender: #7A62C4;
+  --c-apricot: #B8733A;
+  --c-sage: #5B8A3E;
+  --c-rose: #B8557A;
+  --c-butter: #9A7E1E;
+  --c-slate: #5E6A8A;
+  --c-coral: #C0583E;
+  --c-gray: #7A8196;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 100vh;
+  transition: background .25s ease, color .25s ease;
+}
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+
+.wrap {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 20px) 16px calc(env(safe-area-inset-bottom) + 40px);
+}
+
+/* ヘッダー */
+header { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.today-label { font-size: 13px; color: var(--sub); letter-spacing: .08em; }
+.today-date { font-size: 26px; font-weight: 700; letter-spacing: .02em; line-height: 1.2; }
+.stats { text-align: right; font-size: 12px; color: var(--sub); line-height: 1.6; }
+.stats b { color: var(--text); font-weight: 600; }
+
+/* 入力 */
+.composer {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: var(--shadow);
+}
+.composer textarea {
+  width: 100%;
+  min-height: 52px;
+  max-height: 200px;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 17px;
+  padding: 4px 4px 8px;
+}
+.composer textarea::placeholder { color: var(--sub); opacity: .8; }
+.composer-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.hint { font-size: 12px; color: var(--sub); min-height: 22px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.btn-add {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border: none;
+  border-radius: 999px;
+  padding: 8px 20px;
+  font-weight: 700;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.btn-add:disabled { opacity: .35; cursor: default; }
+.tip { font-size: 11.5px; color: var(--sub); margin: 8px 4px 0; opacity: .85; }
+
+/* ツールバー */
+.toolbar { display: flex; gap: 8px; margin: 20px 0 12px; flex-wrap: wrap; align-items: center; }
+.seg { display: inline-flex; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 3px; }
+.seg button { border: none; background: transparent; padding: 5px 14px; border-radius: 999px; font-size: 13px; color: var(--sub); }
+.seg button.on { background: var(--surface-2); color: var(--text); font-weight: 600; }
+.search {
+  flex: 1 1 140px;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 14px;
+  outline: none;
+}
+.search:focus, .composer:focus-within { border-color: var(--accent); }
+.chip-toggle {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--sub);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+.chip-toggle.on { border-color: var(--accent); color: var(--accent); }
+
+/* リスト */
+.lang-title { font-size: 12px; letter-spacing: .14em; color: var(--sub); margin: 24px 4px 8px; text-transform: uppercase; }
+.group { margin-bottom: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
+.group-head {
+  width: 100%;
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px;
+  background: transparent; border: none; text-align: left;
+}
+.dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; background: var(--cat); }
+.group-name { font-size: 14px; font-weight: 700; color: var(--cat); }
+.group-count { font-size: 12px; color: var(--sub); margin-left: auto; }
+.chev { color: var(--sub); font-size: 12px; transition: transform .2s; }
+.group.closed .chev { transform: rotate(-90deg); }
+.group.closed .items { display: none; }
+
+.items { list-style: none; margin: 0; padding: 0; }
+.item { border-top: 1px solid var(--border); }
+.row { display: flex; align-items: flex-start; gap: 10px; padding: 11px 14px; }
+.check {
+  width: 22px; height: 22px; flex-shrink: 0; margin-top: 2px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  display: grid; place-items: center;
+  font-size: 12px; color: transparent; padding: 0;
+}
+.item.done .check { background: var(--cat); border-color: var(--cat); color: var(--bg); }
+.body { flex: 1; min-width: 0; cursor: pointer; }
+.term { font-size: 16.5px; font-weight: 600; word-break: break-word; }
+.meaning { font-size: 14px; color: var(--sub); margin-top: 1px; word-break: break-word; }
+.item.done .term { opacity: .55; }
+.meta { font-size: 11px; color: var(--sub); flex-shrink: 0; margin-top: 4px; text-align: right; white-space: nowrap; }
+.tag { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 999px; color: var(--cat); border: 1px solid var(--cat); margin-top: 4px; opacity: .9; }
+
+.editor { display: none; padding: 0 14px 12px 46px; gap: 8px; flex-wrap: wrap; }
+.item.open .editor { display: flex; }
+.editor input, .editor select {
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 7px 10px; font-size: 14px; outline: none; min-width: 0;
+}
+.editor input { flex: 1 1 100%; }
+.editor select { flex: 1 1 160px; }
+.editor .small {
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 7px 12px; font-size: 13px;
+}
+.editor .small.save { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.editor .small.del { color: var(--danger); }
+
+.day-title { display: flex; align-items: baseline; gap: 8px; margin: 22px 4px 8px; }
+.day-title .d { font-size: 15px; font-weight: 700; }
+.day-title .n { font-size: 12px; color: var(--sub); }
+
+.empty { text-align: center; color: var(--sub); padding: 48px 16px; font-size: 14px; line-height: 1.9; }
+
+/* フッター */
+footer { margin-top: 32px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+footer button {
+  border: 1px solid var(--border); background: var(--surface); color: var(--sub);
+  border-radius: 999px; padding: 7px 14px; font-size: 12.5px;
+}
+.toast {
+  position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 24px);
+  transform: translateX(-50%) translateY(20px);
+  background: var(--text); color: var(--bg);
+  padding: 9px 18px; border-radius: 999px; font-size: 13px;
+  opacity: 0; pointer-events: none; transition: all .25s ease; max-width: calc(100% - 32px);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="today-label">TODAY</div>
+      <div class="today-date" id="todayDate"></div>
+    </div>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <div class="composer">
+    <textarea id="input" rows="1" placeholder="単語・フレーズを入力（例: honestly = 正直に）" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+    <div class="composer-foot">
+      <div class="hint" id="hint"></div>
+      <button class="btn-add" id="addBtn" disabled>追加</button>
+    </div>
+  </div>
+  <p class="tip">「=」のあとに意味を書けます。複数行を貼り付けると1行ずつ追加されます。</p>
+
+  <div class="toolbar">
+    <div class="seg" role="tablist">
+      <button id="viewCat" class="on">ジャンル別</button>
+      <button id="viewDay">日付別</button>
+    </div>
+    <input class="search" id="search" type="search" placeholder="検索">
+    <button class="chip-toggle" id="undoneOnly">未転記だけ</button>
+  </div>
+
+  <main id="list"></main>
+
+  <footer>
+    <button id="themeBtn"></button>
+    <button id="copyBtn">未転記をコピー</button>
+    <button id="exportBtn">バックアップ保存</button>
+    <button id="importBtn">バックアップ読込</button>
+    <input type="file" id="importFile" accept="application/json" hidden>
+  </footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+/* ---------- ジャンル定義 ---------- */
+const CATS = {
+  en_sentence: { lang: 'en', label: '文・フレーズ',        color: 'blue' },
+  en_chunk:    { lang: 'en', label: 'チャンク',            color: 'teal' },
+  en_idiom:    { lang: 'en', label: '熟語・句動詞',        color: 'lavender' },
+  en_verb:     { lang: 'en', label: '動詞',                color: 'apricot' },
+  en_noun:     { lang: 'en', label: '名詞',                color: 'sage' },
+  en_adj:      { lang: 'en', label: '形容詞',              color: 'rose' },
+  en_adv:      { lang: 'en', label: '副詞',                color: 'butter' },
+  en_func:     { lang: 'en', label: '前置詞・接続詞など',  color: 'slate' },
+  en_slang:    { lang: 'en', label: 'スラング・感嘆詞',    color: 'coral' },
+  en_word:     { lang: 'en', label: '単語（その他）',      color: 'gray' },
+  ja_phrase:   { lang: 'ja', label: '日本語フレーズ',      color: 'blue' },
+  ja_verb:     { lang: 'ja', label: '日本語動詞',          color: 'apricot' },
+  ja_adj:      { lang: 'ja', label: '日本語形容詞',        color: 'rose' },
+  ja_adv:      { lang: 'ja', label: '日本語副詞',          color: 'butter' },
+  ja_noun:     { lang: 'ja', label: '日本語 名詞・単語',   color: 'sage' },
+  other:       { lang: 'other', label: 'その他',           color: 'gray' },
+};
+const LANGS = [
+  { key: 'en', title: 'English' },
+  { key: 'ja', title: '日本語' },
+  { key: 'other', title: 'その他' },
+];
+
+/* ---------- 自動ジャンル分け ---------- */
+const words = s => new Set(s.split(/\s+/));
+const EN_VERBS = words(`be have do say get make go know take see come think look want give use find tell ask work seem feel try leave call keep let begin help talk turn start show hear play run move like live believe hold bring happen write provide sit stand lose pay meet include continue set learn change lead understand watch follow stop create speak read allow add spend grow open walk win offer remember love consider appear buy wait serve die send expect build stay fall cut reach kill remain suggest raise pass sell require report decide pull push eat drink sleep cry laugh hate hope wish miss forget sing swim drive fly throw catch break fix clean cook wash hang hurt deal quit figure mess chill hang freak screw pick put check sort point carry wake grab hit kick shut calm cheer back`);
+const EN_PARTICLES = words(`up out off on in down away over back through around about along apart aside by into after across ahead forward together with for to`);
+const EN_ADJ = words(`good bad new old great high low small large big long short little young important different early late right wrong hard easy sure free full real best better worse worst able happy sad tired sleepy angry busy lazy cool nice fine awesome awful weird crazy cute funny serious honest boring bored sick hungry thirsty rich poor cheap expensive hot cold warm quiet loud strong weak smart stupid clever kind mean rude shy brave proud upset scared afraid glad worth friendly lovely lonely ugly silly likely elderly costly deadly lively holy chilly curly daily awkward chill dope lit salty sus`);
+const EN_ADV = words(`very really so too also just still already always never often sometimes usually maybe perhaps quite rather almost even again soon now then here there today tomorrow yesterday tonight ever once twice anyway though yet pretty kinda sorta anymore somehow`);
+const EN_FUNC = words(`in on at by for with about against between into through during before after above below to from of off over under since until upon within without and but or nor because although if unless while whereas so the a an this that these those i you he she it we they me him us them my your his her its our their`);
+const EN_SLANG = words(`wow oops yeah yep nope dude bro gosh damn hey ugh lol omg wtf yikes geez duh meh ouch yay oh hmm huh nah bruh ok okay`);
+const EN_SUBJ = words(`i you he she it we they this that there what how why who where when which do does did don't doesn't didn't can can't could couldn't would wouldn't will won't should shouldn't is isn't are aren't was wasn't were i'm it's that's let's you're i've i'll i'd he's she's we're they're there's what's please thank thanks never`);
+
+const JA_ADV = words(`とても すごく めっちゃ まじで マジで 全然 たぶん 多分 やっぱり やっぱ ちょっと 正直 本当に ほんとに 絶対 結構 けっこう かなり もう まだ すぐ ゆっくり はっきり しっかり きっと たまに いつも よく 実は 一応 とりあえず なんか 少し たくさん ずっと 必ず 急に 普通に 意外と わりと 割と`);
+const JA_PHRASE_END = /(すぎ|過ぎ|すぎる|過ぎる|すぎた|じゃん|よね|かな|だね|だよ|でしょ|けど|って|ちゃう|ちゃった|てる|ている|ました|ます|です|たい|だ|ね|よ|わ|ぞ|ぜ|なあ|なぁ|w+|笑)$/;
+
+const JP_CHAR = /[぀-ヿ㐀-鿿ｦ-ﾟ]/g;
+const LATIN_CHAR = /[A-Za-z]/g;
+
+function detectLang(s) {
+  const jp = (s.match(JP_CHAR) || []).length;
+  const en = (s.match(LATIN_CHAR) || []).length;
+  if (!jp && !en) return 'other';
+  if (jp && !en) return 'ja';
+  if (en && !jp) return 'en';
+  return jp >= en ? 'ja' : 'en';
+}
+
+function classifyEn(term) {
+  const clean = term.toLowerCase().replace(/[’]/g, "'").replace(/[“”"()]/g, '').trim();
+  const endsPunct = /[.!?]$/.test(clean);
+  const ws = clean.replace(/[.!?,;:]+/g, ' ').trim().split(/\s+/).filter(Boolean);
+  if (ws.length === 0) return 'other';
+
+  if (ws.length === 1) {
+    const w = ws[0];
+    if (EN_SLANG.has(w)) return 'en_slang';
+    if (EN_ADV.has(w)) return 'en_adv';
+    if (EN_ADJ.has(w)) return 'en_adj';
+    if (EN_VERBS.has(w)) return 'en_verb';
+    if (EN_FUNC.has(w)) return 'en_func';
+    if (/ly$/.test(w) && w.length > 4) return 'en_adv';
+    if (/(tion|sion|ment|ness|ity|ship|hood|ism|ance|ence|dom|ist|ure|age)$/.test(w)) return 'en_noun';
+    if (/(ous|ful|less|able|ible|ive|ic|ical|ish|ary|ent|ant|ed|y)$/.test(w) && w.length > 3) return 'en_adj';
+    if (/(ize|ise|ify|ate)$/.test(w)) return 'en_verb';
+    if (/ing$/.test(w) && w.length > 5) return 'en_verb';
+    return 'en_word';
+  }
+
+  // 2語以上
+  const first = ws[0];
+  if (endsPunct || EN_SUBJ.has(first)) return 'en_sentence';
+  if (EN_FUNC.has(first)) return 'en_chunk';          // at the end of the day / in a way など
+  if (ws.length >= 6) return 'en_sentence';
+  if (ws.length <= 4) {
+    const isVerbish = EN_VERBS.has(first) || first === 'be' || /(ing|ed)$/.test(first) && EN_VERBS.has(first.replace(/(ing|ed)$/, ''));
+    const hasParticle = ws.slice(1).some(w => EN_PARTICLES.has(w));
+    if (isVerbish && hasParticle) return 'en_idiom';
+    if (isVerbish && ws.length === 2) return 'en_idiom';
+  }
+  return 'en_chunk';
+}
+
+function classifyJa(term) {
+  const t = term.trim().replace(/[。！？!?…、,.\s]+$/, '');
+  if (JA_ADV.has(t)) return 'ja_adv';
+  if (/[、。！？!?…\s]/.test(term.trim()) || t.length >= 10) return 'ja_phrase';
+  if (JA_PHRASE_END.test(t) && t.length >= 2) return 'ja_phrase';
+  if (/^[゠-ヿー]+$/.test(t)) return 'ja_noun';               // カタカナ語
+  if (/(する|る|う|く|ぐ|す|つ|ぬ|ぶ|む)$/.test(t) && t.length >= 2) return 'ja_verb';
+  if (/(い|な)$/.test(t) && t.length >= 2) return 'ja_adj';
+  if (/(に|と)$/.test(t) && t.length >= 3) return 'ja_adv';
+  return 'ja_noun';
+}
+
+function classify(term) {
+  const lang = detectLang(term);
+  if (lang === 'en') return classifyEn(term);
+  if (lang === 'ja') return classifyJa(term);
+  return 'other';
+}
+
+/* 「単語 = 意味」を分ける。「honestly 正直に」のように英語+日本語でも分ける */
+function parseLine(line) {
+  const s = line.trim();
+  if (!s) return null;
+  let m = s.match(/^(.+?)\s*[=＝：]\s*(.*)$/) || s.match(/^(.+?)\s+[-–—:]\s+(.*)$/);
+  if (m && m[1].trim()) return { term: m[1].trim(), meaning: m[2].trim() };
+  m = s.match(/^([A-Za-z][A-Za-z0-9'’,.!?\-\s]*?)\s+([぀-ヿ㐀-鿿].*)$/);
+  if (m) return { term: m[1].trim(), meaning: m[2].trim() };
+  return { term: s, meaning: '' };
+}
+
+/* ---------- 保存 ---------- */
+const KEY = 'memo.items.v1';
+const PREF = 'memo.prefs.v1';
+function load(key, fallback) {
+  try { const v = JSON.parse(localStorage.getItem(key)); return v ?? fallback; } catch { return fallback; }
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(items)); } catch { toast('保存できませんでした'); }
+}
+function savePrefs() {
+  try { localStorage.setItem(PREF, JSON.stringify(prefs)); } catch {}
+}
+let items = load(KEY, []);
+let prefs = Object.assign({ view: 'cat', theme: 'dark', undoneOnly: false, closed: {} }, load(PREF, {}));
+let openId = null;
+
+/* ---------- 日付 ---------- */
+const WD = ['日', '月', '火', '水', '木', '金', '土'];
+const dayKey = ts => { const d = new Date(ts); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
+const fmtLong = ts => { const d = new Date(ts); return `${d.getMonth() + 1}月${d.getDate()}日（${WD[d.getDay()]}）`; };
+function fmtShort(ts) {
+  const d = new Date(ts), now = new Date();
+  const diff = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 864e5);
+  if (diff === 0) return '今日 ' + `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+  if (diff === 1) return '昨日';
+  const y = d.getFullYear() !== now.getFullYear() ? `${d.getFullYear()}/` : '';
+  return `${y}${d.getMonth() + 1}/${d.getDate()}(${WD[d.getDay()]})`;
+}
+function dayTitle(ts) {
+  const d = new Date(ts), now = new Date();
+  const diff = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 864e5);
+  const base = (d.getFullYear() !== now.getFullYear() ? `${d.getFullYear()}年` : '') + fmtLong(ts);
+  if (diff === 0) return '今日・' + base;
+  if (diff === 1) return '昨日・' + base;
+  return base;
+}
+
+/* ---------- 描画 ---------- */
+const $ = id => document.getElementById(id);
+function el(tag, attrs = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') e.className = v;
+    else if (k === 'style') e.setAttribute('style', v);
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v);
+  }
+  for (const k of kids) if (k != null) e.append(k);
+  return e;
+}
+const catVar = cat => `--cat: var(--c-${CATS[cat].color})`;
+
+function visibleItems() {
+  const q = $('search').value.trim().toLowerCase();
+  return items.filter(it =>
+    (!prefs.undoneOnly || !it.done) &&
+    (!q || it.term.toLowerCase().includes(q) || (it.meaning || '').toLowerCase().includes(q) || CATS[it.cat].label.includes(q))
+  ).sort((a, b) => b.createdAt - a.createdAt);
+}
+
+function renderItem(it, showTag) {
+  const li = el('li', { class: 'item' + (it.done ? ' done' : '') + (openId === it.id ? ' open' : ''), style: catVar(it.cat) });
+  const check = el('button', { class: 'check', title: '暗記に入れた', 'aria-label': '暗記に入れた', onclick: () => {
+    it.done = !it.done; save(); render();
+  } }, '✓');
+  const body = el('div', { class: 'body', onclick: () => { openId = openId === it.id ? null : it.id; render(); } },
+    el('div', { class: 'term' }, it.term),
+    it.meaning ? el('div', { class: 'meaning' }, it.meaning) : null,
+    showTag ? el('span', { class: 'tag' }, CATS[it.cat].label) : null
+  );
+  const meta = el('div', { class: 'meta' }, fmtShort(it.createdAt));
+  li.append(el('div', { class: 'row' }, check, body, meta));
+
+  if (openId === it.id) {
+    const termIn = el('input', { value: it.term, placeholder: '単語・フレーズ' });
+    const meanIn = el('input', { value: it.meaning || '', placeholder: '意味（なくてもOK）' });
+    const sel = el('select');
+    for (const L of LANGS) {
+      const og = el('optgroup', { label: L.title });
+      for (const [k, c] of Object.entries(CATS)) if (c.lang === L.key) {
+        const o = el('option', { value: k }, c.label);
+        if (k === it.cat) o.selected = true;
+        og.append(o);
+      }
+      sel.append(og);
+    }
+    const saveBtn = el('button', { class: 'small save', onclick: () => {
+      const term = termIn.value.trim();
+      if (!term) return;
+      const catChanged = sel.value !== it.cat;
+      const termChanged = term !== it.term;
+      it.term = term;
+      it.meaning = meanIn.value.trim();
+      if (catChanged) { it.cat = sel.value; it.auto = false; }
+      else if (termChanged && it.auto !== false) it.cat = classify(term);
+      openId = null; save(); render();
+      toast(catChanged ? `「${CATS[it.cat].label}」に移動しました` : '保存しました');
+    } }, '保存');
+    const delBtn = el('button', { class: 'small del', onclick: () => {
+      if (!confirm(`「${it.term}」を削除しますか？`)) return;
+      items = items.filter(x => x.id !== it.id); openId = null; save(); render();
+    } }, '削除');
+    li.append(el('div', { class: 'editor' }, termIn, meanIn, sel, saveBtn, delBtn));
+  }
+  return li;
+}
+
+function renderByCat(list, root) {
+  for (const L of LANGS) {
+    const cats = Object.keys(CATS).filter(k => CATS[k].lang === L.key);
+    const groups = cats.map(k => [k, list.filter(it => it.cat === k)]).filter(([, a]) => a.length);
+    if (!groups.length) continue;
+    root.append(el('div', { class: 'lang-title' }, L.title));
+    for (const [k, arr] of groups) {
+      const closed = !!prefs.closed[k];
+      const g = el('section', { class: 'group' + (closed ? ' closed' : ''), style: catVar(k) });
+      g.append(el('button', { class: 'group-head', onclick: () => {
+        prefs.closed[k] = !prefs.closed[k]; savePrefs(); render();
+      } },
+        el('span', { class: 'dot' }),
+        el('span', { class: 'group-name' }, CATS[k].label),
+        el('span', { class: 'group-count' }, `${arr.length}件`),
+        el('span', { class: 'chev' }, '▼')
+      ));
+      const ul = el('ul', { class: 'items' });
+      arr.forEach(it => ul.append(renderItem(it, false)));
+      g.append(ul);
+      root.append(g);
+    }
+  }
+}
+
+function renderByDay(list, root) {
+  const days = new Map();
+  for (const it of list) {
+    const k = dayKey(it.createdAt);
+    if (!days.has(k)) days.set(k, []);
+    days.get(k).push(it);
+  }
+  for (const arr of days.values()) {
+    root.append(el('div', { class: 'day-title' },
+      el('span', { class: 'd' }, dayTitle(arr[0].createdAt)),
+      el('span', { class: 'n' }, `${arr.length}件`)));
+    // 日の中でもジャンル順に並べる
+    const order = Object.keys(CATS);
+    arr.sort((a, b) => order.indexOf(a.cat) - order.indexOf(b.cat) || b.createdAt - a.createdAt);
+    const g = el('section', { class: 'group' });
+    const ul = el('ul', { class: 'items' });
+    arr.forEach(it => ul.append(renderItem(it, true)));
+    g.append(ul);
+    root.append(g);
+  }
+}
+
+function render() {
+  const now = Date.now();
+  $('todayDate').textContent = fmtLong(now);
+  const todayN = items.filter(it => dayKey(it.createdAt) === dayKey(now)).length;
+  const undone = items.filter(it => !it.done).length;
+  $('stats').innerHTML = '';
+  $('stats').append(
+    el('div', {}, '今日 ', el('b', {}, String(todayN)), ' 件'),
+    el('div', {}, '未転記 ', el('b', {}, String(undone)), ' / 全 ', el('b', {}, String(items.length)))
+  );
+
+  $('viewCat').classList.toggle('on', prefs.view === 'cat');
+  $('viewDay').classList.toggle('on', prefs.view === 'day');
+  $('undoneOnly').classList.toggle('on', prefs.undoneOnly);
+  document.documentElement.dataset.theme = prefs.theme;
+  document.querySelector('meta[name=theme-color]').content = prefs.theme === 'light' ? '#F4F2F8' : '#121A2B';
+  $('themeBtn').textContent = prefs.theme === 'light' ? '🌙 ミッドナイトネイビーにする' : '☀️ ラベンダーミストにする';
+
+  const root = $('list');
+  root.innerHTML = '';
+  const list = visibleItems();
+  if (!list.length) {
+    root.append(el('div', { class: 'empty' },
+      items.length ? '該当するメモはありません' : 'まだメモがありません。\n上の欄に単語やフレーズを入れてみてください。'));
+    root.firstChild.style.whiteSpace = 'pre-line';
+    return;
+  }
+  if (prefs.view === 'cat') renderByCat(list, root);
+  else renderByDay(list, root);
+}
+
+/* ---------- 入力 ---------- */
+const input = $('input');
+function autosize() { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 200) + 'px'; }
+function updateHint() {
+  const lines = input.value.split('\n').map(parseLine).filter(Boolean);
+  $('addBtn').disabled = !lines.length;
+  const h = $('hint');
+  h.innerHTML = '';
+  if (!lines.length) return;
+  if (lines.length > 1) { h.append(`${lines.length}件をまとめて追加`); return; }
+  const cat = classify(lines[0].term);
+  h.append('→ ', el('span', { class: 'tag', style: catVar(cat) + ';margin:0' }, CATS[cat].label), ' に入ります');
+}
+function addFromInput() {
+  const lines = input.value.split('\n').map(parseLine).filter(Boolean);
+  if (!lines.length) return;
+  const now = Date.now();
+  const added = lines.map((p, i) => ({
+    id: now.toString(36) + i + Math.random().toString(36).slice(2, 6),
+    term: p.term, meaning: p.meaning, cat: classify(p.term), auto: true, done: false, createdAt: now + i,
+  }));
+  items.push(...added);
+  save();
+  input.value = ''; autosize(); updateHint();
+  if (prefs.closed[added[0].cat]) { prefs.closed[added[0].cat] = false; savePrefs(); }
+  render();
+  toast(added.length === 1 ? `「${CATS[added[0].cat].label}」に追加しました` : `${added.length}件追加しました`);
+}
+input.addEventListener('input', () => { autosize(); updateHint(); });
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) {
+    e.preventDefault();
+    addFromInput();
+  }
+});
+$('addBtn').addEventListener('click', () => { addFromInput(); input.focus(); });
+
+/* ---------- ツールバー・フッター ---------- */
+$('viewCat').onclick = () => { prefs.view = 'cat'; savePrefs(); render(); };
+$('viewDay').onclick = () => { prefs.view = 'day'; savePrefs(); render(); };
+$('undoneOnly').onclick = () => { prefs.undoneOnly = !prefs.undoneOnly; savePrefs(); render(); };
+$('search').addEventListener('input', render);
+$('themeBtn').onclick = () => { prefs.theme = prefs.theme === 'light' ? 'dark' : 'light'; savePrefs(); render(); };
+
+$('copyBtn').onclick = async () => {
+  const undone = items.filter(it => !it.done).sort((a, b) => a.createdAt - b.createdAt);
+  if (!undone.length) { toast('未転記のメモはありません'); return; }
+  const text = undone.map(it => it.meaning ? `${it.term}\t${it.meaning}` : it.term).join('\n');
+  try { await navigator.clipboard.writeText(text); }
+  catch {
+    const ta = el('textarea'); ta.value = text; document.body.append(ta); ta.select();
+    document.execCommand('copy'); ta.remove();
+  }
+  if (confirm(`${undone.length}件をコピーしました。\n暗記アプリに入れたら「転記済み」にしますか？`)) {
+    undone.forEach(it => it.done = true); save(); render();
+  }
+};
+
+$('exportBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify({ app: 'memo', version: 1, items }, null, 2)], { type: 'application/json' });
+  const a = el('a', { href: URL.createObjectURL(blob), download: `memo-backup-${new Date().toISOString().slice(0, 10)}.json` });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+$('importBtn').onclick = () => $('importFile').click();
+$('importFile').onchange = async e => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    const incoming = (Array.isArray(data) ? data : data.items || []).filter(it => it && it.term && it.id);
+    const ids = new Set(items.map(it => it.id));
+    let n = 0;
+    for (const it of incoming) {
+      if (ids.has(it.id)) continue;
+      if (!CATS[it.cat]) it.cat = classify(it.term);
+      items.push(it); n++;
+    }
+    save(); render(); toast(`${n}件読み込みました`);
+  } catch { toast('読み込めませんでした'); }
+};
+
+let toastTimer;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// 日付が変わったら表示を更新
+let shownDay = dayKey(Date.now());
+function refreshIfNewDay() {
+  if (dayKey(Date.now()) !== shownDay && openId === null) { shownDay = dayKey(Date.now()); render(); }
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshIfNewDay(); });
+setInterval(refreshIfNewDay, 60 * 1000);
+
+render();
+updateHint();
+</script>
+</body>
+</html>

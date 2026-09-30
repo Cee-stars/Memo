@@ -1,0 +1,9 @@
+{
+  "name": "Memo",
+  "short_name": "Memo",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#121A2B",
+  "theme_color": "#121A2B",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
