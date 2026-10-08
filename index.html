@@ -33,7 +33,7 @@
   --danger: #E89A9A;
   --shadow: 0 1px 0 rgba(255,255,255,.03), 0 8px 24px rgba(0,0,0,.25);
   --glass: rgba(24,33,54,.80);        /* 背景アニメの上に置くカード */
-  --veil: rgba(8,12,26,.42);          /* 背景を少し暗くして文字を読みやすく */
+  --veil: rgba(8,12,26,.5);          /* 背景を少し暗くして文字を読みやすく */
 
   --c-blue: #8FB8E8;      /* 文・フレーズ */
   --c-teal: #7FCBC4;      /* チャンク */
@@ -259,13 +259,14 @@ body.has-bg .chip-toggle, body.has-bg footer button, body.has-bg footer select, 
   -webkit-backdrop-filter: blur(14px) saturate(1.2);
   backdrop-filter: blur(14px) saturate(1.2);
 }
-body.has-bg header, body.has-bg .tip, body.has-bg .lang-title, body.has-bg .day-title { text-shadow: 0 1px 8px rgba(0,0,0,.55); }
+body.has-bg header, body.has-bg .tip, body.has-bg .lang-title, body.has-bg .day-title { text-shadow: 0 1px 3px rgba(0,0,0,.9), 0 1px 12px rgba(0,0,0,.7); }
 :root[data-theme="light"] body.has-bg header, :root[data-theme="light"] body.has-bg .tip,
 :root[data-theme="light"] body.has-bg .lang-title, :root[data-theme="light"] body.has-bg .day-title { text-shadow: 0 1px 8px rgba(255,255,255,.9); }
 footer select {
   border: 1px solid var(--border); background: var(--surface); color: var(--sub);
   border-radius: 999px; padding: 7px 12px; font-size: 12.5px; -webkit-appearance: none; appearance: none;
 }
+.credit { text-align: center; font-size: 10.5px; color: var(--sub); opacity: .7; margin: 10px 0 0; }
 .toast {
   position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 24px);
   transform: translateX(-50%) translateY(20px);
@@ -308,10 +309,20 @@ footer select {
 
   <footer>
     <select id="bgSelect" aria-label="背景">
-      <option value="shuffle">🇺🇸 背景：毎回ちがう風景</option>
-      <option value="nyc">🗽 ニューヨークの夜</option>
-      <option value="route66">🛣️ ルート66の夕日</option>
-      <option value="goldengate">🌉 ゴールデンゲートブリッジ</option>
+      <option value="shuffle">🇺🇸 背景：毎回ちがう動画</option>
+      <optgroup label="アメリカの動画">
+        <option value="nyc-taxi">🚕 ニューヨークの街とイエローキャブ</option>
+        <option value="brooklyn-bridge">🌉 ブルックリン橋とマンハッタン</option>
+        <option value="times-square-night">🌃 タイムズスクエアの夜</option>
+        <option value="times-square-timelapse">⏩ タイムズスクエア（早送り）</option>
+        <option value="golden-gate-day">☀️ ゴールデンゲートブリッジ（昼）</option>
+        <option value="golden-gate-night">🌙 ゴールデンゲートブリッジ（夜）</option>
+      </optgroup>
+      <optgroup label="アニメ（通信なしで動く）">
+        <option value="nyc">🗽 ニューヨークの夜</option>
+        <option value="route66">🛣️ ルート66の夕日</option>
+        <option value="goldengate">🌁 ゴールデンゲートの霧</option>
+      </optgroup>
       <option value="video">🎬 自分の動画</option>
       <option value="off">背景なし</option>
     </select>
@@ -324,6 +335,7 @@ footer select {
     <button id="importBtn">バックアップ読込</button>
     <input type="file" id="importFile" accept="application/json" hidden>
   </footer>
+  <p class="credit">背景動画：Pexels（無料素材）</p>
 
   <section class="panel" id="syncPanel">
     <h3>☁️ 自動同期（GitHub）</h3>
@@ -916,6 +928,6 @@ updateHint();
 showSync();
 syncNow();
 </script>
-<script src="bg.js?v=1"></script>
+<script src="bg.js?v=2"></script>
 </body>
 </html>

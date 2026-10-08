@@ -1,5 +1,5 @@
 /*
-  背景アニメーション（アメリカの風景）と、自分の動画の背景再生。
+  背景：アメリカの本物の動画（videos/ フォルダ）、通信なしで動くアニメ、自分の動画。
   ・ニューヨークの夜 / ルート66の夕日 / ゴールデンゲートブリッジ は Canvas で描いているので通信なし・オフラインでも動く
   ・自分の動画は端末の IndexedDB に保存して、音なし・ループで流す
 */
@@ -7,7 +7,6 @@
 'use strict';
 
 const PREF_KEY = 'memo.bg.v1';
-const SCENE_KEYS = ['nyc', 'route66', 'goldengate'];
 const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const lsGet = k => { try { return localStorage.getItem(k); } catch { return null; } };
@@ -328,18 +327,33 @@ async function idbPut(key, val) {
   });
 }
 
+/* ---------- 本物の動画（Pexels の無料動画を縦長・音なしに変換して同梱） ---------- */
+const VIDEOS = {
+  'nyc-taxi':               { anim: 'nyc' },
+  'brooklyn-bridge':        { anim: 'nyc' },
+  'times-square-night':     { anim: 'nyc' },
+  'times-square-timelapse': { anim: 'nyc' },
+  'golden-gate-day':        { anim: 'goldengate' },
+  'golden-gate-night':      { anim: 'goldengate' },
+};
+const VIDEO_KEYS = Object.keys(VIDEOS);
+
 /* ---------- 制御 ---------- */
 let mode = lsGet(PREF_KEY) || 'shuffle';
+// 本物の動画を入れたので、前にアニメを選んでいた人も一度だけ動画に切り替える
+if (!lsGet(PREF_KEY + '.migrated2')) {
+  if (SCENES[mode]) { mode = 'shuffle'; lsSet(PREF_KEY, mode); }
+  lsSet(PREF_KEY + '.migrated2', '1');
+}
 let draw = null, raf = 0, last = 0, t0 = performance.now(), size = { w: 0, h: 0 };
-let currentScene = null, videoURL = null;
+let currentScene = null, videoURL = null, playingVideo = false, applyId = 0;
 
-function pickScene() {
-  if (mode !== 'shuffle') return mode;
-  // 前回と違う風景にする
-  const prev = lsGet(PREF_KEY + '.last');
-  const pool = SCENE_KEYS.filter(k => k !== prev);
+function pickVideo() {
+  // 前回と違う動画にする
+  const prev = lsGet(PREF_KEY + '.lastVideo');
+  const pool = VIDEO_KEYS.filter(k => k !== prev);
   const k = pool[(Math.random() * pool.length) | 0];
-  lsSet(PREF_KEY + '.last', k);
+  lsSet(PREF_KEY + '.lastVideo', k);
   return k;
 }
 
@@ -362,7 +376,29 @@ function loop(now) {
 function stop() { cancelAnimationFrame(raf); raf = 0; }
 function start() { if (!raf && draw && !reduceMotion && !document.hidden) raf = requestAnimationFrame(loop); }
 
+function showAnim(key) {
+  playingVideo = false;
+  video.removeAttribute('src'); video.removeAttribute('poster'); video.load();
+  video.style.display = 'none';
+  currentScene = key;
+  canvas.style.display = 'block';
+  build();
+  start();
+}
+function showVideo(src, poster, fallbackAnim) {
+  const id = applyId;
+  playingVideo = true;
+  canvas.style.display = 'none';
+  if (poster) video.poster = poster; else video.removeAttribute('poster');
+  video.src = src;
+  video.style.display = 'block';
+  // 通信できない時などはアニメに切り替える
+  video.onerror = () => { if (id === applyId && fallbackAnim) showAnim(fallbackAnim); };
+  if (!reduceMotion) video.play().catch(() => {});
+}
+
 async function apply() {
+  applyId++;
   stop();
   document.body.classList.toggle('has-bg', mode !== 'off');
   canvas.style.display = 'none';
@@ -375,18 +411,15 @@ async function apply() {
       if (blob) {
         if (videoURL) URL.revokeObjectURL(videoURL);
         videoURL = URL.createObjectURL(blob);
-        video.src = videoURL;
-        video.style.display = 'block';
-        video.play().catch(() => {});
+        showVideo(videoURL, null, 'nyc');
         return;
       }
     } catch {}
     mode = 'shuffle';
   }
-  currentScene = pickScene();
-  canvas.style.display = 'block';
-  build();
-  start();
+  if (SCENES[mode]) { showAnim(mode); return; }
+  const key = VIDEOS[mode] ? mode : pickVideo();
+  showVideo(`videos/${key}.mp4`, `videos/${key}.jpg`, VIDEOS[key].anim);
 }
 
 let resizeTimer;
@@ -400,9 +433,13 @@ window.addEventListener('resize', () => {
 });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { stop(); video.pause(); }
-  else if (mode === 'video') video.play().catch(() => {});
+  else if (playingVideo) video.play().catch(() => {});
   else start();
 });
+// 低電力モードなどで自動再生が止められた時は、画面に触れたら再生する
+['touchstart', 'pointerdown'].forEach(ev => document.addEventListener(ev, () => {
+  if (playingVideo && video.paused && !reduceMotion) video.play().catch(() => {});
+}, { passive: true }));
 
 /* ---------- UI（フッターのセレクトと動画ボタン） ---------- */
 const sel = document.getElementById('bgSelect');
