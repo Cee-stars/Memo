@@ -32,6 +32,8 @@
   --accent-ink: #121A2B;
   --danger: #E89A9A;
   --shadow: 0 1px 0 rgba(255,255,255,.03), 0 8px 24px rgba(0,0,0,.25);
+  --glass: rgba(24,33,54,.80);        /* 背景アニメの上に置くカード */
+  --veil: rgba(8,12,26,.42);          /* 背景を少し暗くして文字を読みやすく */
 
   --c-blue: #8FB8E8;      /* 文・フレーズ */
   --c-teal: #7FCBC4;      /* チャンク */
@@ -56,6 +58,8 @@
   --accent-ink: #FFFFFF;
   --danger: #B85A5A;
   --shadow: 0 1px 2px rgba(37,48,74,.06), 0 6px 18px rgba(37,48,74,.06);
+  --glass: rgba(255,255,255,.86);
+  --veil: rgba(244,242,248,.38);
 
   --c-blue: #4A77B4;
   --c-teal: #2F8C84;
@@ -242,6 +246,26 @@ footer button {
 }
 .panel .btns .primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
 .panel .note { color: var(--sub); font-size: 12px; }
+/* 背景（アメリカの風景アニメ / 自分の動画） */
+.bg-layer {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100lvh;
+  z-index: -2; display: none; object-fit: cover; pointer-events: none;
+}
+.bg-overlay { position: fixed; inset: 0; z-index: -1; display: none; background: var(--veil); pointer-events: none; }
+body.has-bg .bg-overlay { display: block; }
+body.has-bg .composer, body.has-bg .group, body.has-bg .seg, body.has-bg .search,
+body.has-bg .chip-toggle, body.has-bg footer button, body.has-bg footer select, body.has-bg .panel {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  backdrop-filter: blur(14px) saturate(1.2);
+}
+body.has-bg header, body.has-bg .tip, body.has-bg .lang-title, body.has-bg .day-title { text-shadow: 0 1px 8px rgba(0,0,0,.55); }
+:root[data-theme="light"] body.has-bg header, :root[data-theme="light"] body.has-bg .tip,
+:root[data-theme="light"] body.has-bg .lang-title, :root[data-theme="light"] body.has-bg .day-title { text-shadow: 0 1px 8px rgba(255,255,255,.9); }
+footer select {
+  border: 1px solid var(--border); background: var(--surface); color: var(--sub);
+  border-radius: 999px; padding: 7px 12px; font-size: 12.5px; -webkit-appearance: none; appearance: none;
+}
 .toast {
   position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 24px);
   transform: translateX(-50%) translateY(20px);
@@ -283,6 +307,16 @@ footer button {
   <main id="list"></main>
 
   <footer>
+    <select id="bgSelect" aria-label="背景">
+      <option value="shuffle">🇺🇸 背景：毎回ちがう風景</option>
+      <option value="nyc">🗽 ニューヨークの夜</option>
+      <option value="route66">🛣️ ルート66の夕日</option>
+      <option value="goldengate">🌉 ゴールデンゲートブリッジ</option>
+      <option value="video">🎬 自分の動画</option>
+      <option value="off">背景なし</option>
+    </select>
+    <button id="bgVideoBtn">🎬 自分の動画を選ぶ</button>
+    <input type="file" id="bgFile" accept="video/*" hidden>
     <button id="syncBtn">☁️ 同期設定</button>
     <button id="themeBtn"></button>
     <button id="copyBtn">未転記をコピー</button>
@@ -432,6 +466,9 @@ function parseLine(line) {
   if (m && m[1].trim()) return { term: m[1].trim(), meaning: m[2].trim() };
   m = s.match(/^([A-Za-z][A-Za-z0-9'’,.!?\-\s]*?)\s+([぀-ヿ㐀-鿿].*)$/);
   if (m) return { term: m[1].trim(), meaning: m[2].trim() };
+  // 「めちゃくちゃ気になる I'm really curious.」のように日本語が先でも分ける
+  m = s.match(/^([\u3040-\u30ff\u3400-\u9fff][^A-Za-z]*?)\s*([A-Za-z][^\u3040-\u30ff\u3400-\u9fff]*)$/);
+  if (m && /\s/.test(m[2])) return { term: m[2].trim(), meaning: m[1].trim() };
   return { term: s, meaning: '' };
 }
 
@@ -453,6 +490,21 @@ function savePrefs() {
 let items = load(KEY, []);
 let prefs = Object.assign({ view: 'cat', theme: 'dark', undoneOnly: false, closed: {} }, load(PREF, {}));
 let openId = null;
+
+// 以前「日本語 English」の順で入れて分かれていなかったメモを分け直す
+(function splitOldItems() {
+  let changed = false;
+  for (const it of items) {
+    if (it.deleted || it.meaning) continue;
+    const p = parseLine(it.term);
+    if (p && p.meaning && p.term !== it.term) {
+      it.term = p.term; it.meaning = p.meaning;
+      if (it.auto !== false) it.cat = classify(p.term);
+      it.updatedAt = Date.now(); changed = true;
+    }
+  }
+  if (changed) try { localStorage.setItem(KEY, JSON.stringify(items)); } catch {}
+})();
 
 /* ---------- 日付 ---------- */
 const WD = ['日', '月', '火', '水', '木', '金', '土'];
@@ -864,5 +916,6 @@ updateHint();
 showSync();
 syncNow();
 </script>
+<script src="bg.js?v=1"></script>
 </body>
 </html>
