@@ -17,7 +17,7 @@ const canvas = document.createElement('canvas');
 canvas.className = 'bg-layer';
 canvas.setAttribute('aria-hidden', 'true');
 const video = document.createElement('video');
-video.className = 'bg-layer video-bright';
+video.className = 'bg-layer';
 video.muted = true; video.loop = true; video.playsInline = true; video.autoplay = true;
 video.setAttribute('muted', ''); video.setAttribute('playsinline', ''); video.setAttribute('aria-hidden', 'true');
 const overlay = document.createElement('div');
@@ -472,6 +472,18 @@ if (fileIn) fileIn.addEventListener('change', async () => {
     alert('動画を保存できませんでした。もう少し短い動画で試してください。');
   }
 });
+
+/* ---------- 背景の明るさ（テーマとは別に保存） ---------- */
+const BRIGHT_KEY = 'memo.bg.bright';
+const brightIn = document.getElementById('bgBright');
+const brightVal = document.getElementById('bgBrightVal');
+function setBright(pct) {
+  document.documentElement.style.setProperty('--bg-bright', pct / 100);
+  if (brightIn) brightIn.value = pct;
+  if (brightVal) brightVal.textContent = pct + '%';
+}
+setBright(Number(lsGet(BRIGHT_KEY)) || 100);
+if (brightIn) brightIn.addEventListener('input', () => { setBright(+brightIn.value); lsSet(BRIGHT_KEY, brightIn.value); });
 
 apply();
 refreshSelect();

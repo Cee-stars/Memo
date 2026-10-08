@@ -235,6 +235,26 @@ footer button {
 }
 .panel.show { display: block; }
 .panel h3 { margin: 0 0 8px; font-size: 15px; }
+.look-block { padding: 12px 0; border-top: 1px solid var(--border); }
+.look-block:first-of-type { border-top: none; }
+.look-title { font-weight: 700; font-size: 14px; }
+.look-block .note { margin: 2px 0 10px; }
+.theme-pick { display: flex; gap: 8px; flex-wrap: wrap; }
+.theme-opt {
+  flex: 1 1 140px; display: flex; align-items: center; gap: 10px;
+  border: 2px solid var(--border); background: var(--surface-2); border-radius: 14px; padding: 10px 12px; font-size: 13.5px; text-align: left;
+}
+.theme-opt.on { border-color: var(--accent); font-weight: 700; }
+.theme-opt .sw { width: 34px; height: 34px; border-radius: 9px; border: 1px solid; display: grid; place-content: center; gap: 3px; flex-shrink: 0; }
+.theme-opt .sw i { display: block; width: 18px; height: 4px; border-radius: 2px; }
+.panel select {
+  width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 9px 12px; font-size: 14px; margin-bottom: 8px;
+}
+.small-btn { border: 1px solid var(--border); background: var(--surface-2); border-radius: 999px; padding: 7px 14px; font-size: 13px; }
+.bright-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 13px; }
+.bright-row input { flex: 1; accent-color: var(--accent); }
+.bright-row b { width: 42px; text-align: right; }
 .panel ol { margin: 6px 0 12px; padding-left: 20px; }
 .panel a { color: var(--accent); }
 .panel input {
@@ -274,7 +294,7 @@ body.has-bg .credit {
 body.has-bg .credit { display: table; margin: 10px auto 0; opacity: 1; }
 :root[data-theme="light"] .group-head { background: color-mix(in srgb, var(--cat) 9%, transparent); }
 :root[data-theme="light"] .btn-add { box-shadow: 0 4px 12px rgba(61,139,217,.35); }
-.video-bright { filter: brightness(1.06) saturate(1.12); }
+.bg-layer { filter: brightness(var(--bg-bright, 1)) saturate(1.1); }
 footer select {
   border: 1px solid var(--border); background: var(--surface); color: var(--sub);
   border-radius: 999px; padding: 7px 12px; font-size: 12.5px; -webkit-appearance: none; appearance: none;
@@ -321,33 +341,62 @@ footer select {
   <main id="list"></main>
 
   <footer>
-    <select id="bgSelect" aria-label="背景">
-      <option value="shuffle">🇺🇸 背景：毎回ちがう動画</option>
-      <optgroup label="アメリカの動画">
-        <option value="nyc-taxi">🚕 ニューヨークの街とイエローキャブ</option>
-        <option value="brooklyn-bridge">🌉 ブルックリン橋とマンハッタン</option>
-        <option value="times-square-night">🌃 タイムズスクエアの夜</option>
-        <option value="times-square-timelapse">⏩ タイムズスクエア（早送り）</option>
-        <option value="golden-gate-day">☀️ ゴールデンゲートブリッジ（昼）</option>
-        <option value="golden-gate-night">🌙 ゴールデンゲートブリッジ（夜）</option>
-      </optgroup>
-      <optgroup label="アニメ（通信なしで動く）">
-        <option value="nyc">🗽 ニューヨークの夜</option>
-        <option value="route66">🛣️ ルート66の夕日</option>
-        <option value="goldengate">🌁 ゴールデンゲートの霧</option>
-      </optgroup>
-      <option value="video">🎬 自分の動画</option>
-      <option value="off">背景なし</option>
-    </select>
-    <button id="bgVideoBtn">🎬 自分の動画を選ぶ</button>
-    <input type="file" id="bgFile" accept="video/*" hidden>
+    <button id="lookBtn">🎨 見た目の設定</button>
     <button id="syncBtn">☁️ 同期設定</button>
-    <button id="themeBtn"></button>
     <button id="copyBtn">未転記をコピー</button>
     <button id="exportBtn">バックアップ保存</button>
     <button id="importBtn">バックアップ読込</button>
     <input type="file" id="importFile" accept="application/json" hidden>
   </footer>
+
+  <section class="panel" id="lookPanel">
+    <h3>🎨 見た目の設定</h3>
+
+    <div class="look-block">
+      <div class="look-title">① カードと文字の色</div>
+      <p class="note">メモのカード・文字の色だけが変わります。背景には影響しません。</p>
+      <div class="theme-pick">
+        <button class="theme-opt" data-theme-opt="light">
+          <span class="sw" style="background:#FFFFFF;border-color:#D5DCE8"><i style="background:#1E2A46"></i><i style="background:#3D8BD9"></i></span>
+          ☀️ クリアホワイト
+        </button>
+        <button class="theme-opt" data-theme-opt="dark">
+          <span class="sw" style="background:#1A2438;border-color:#2E3B57"><i style="background:#E8E6F0"></i><i style="background:#8FB8E8"></i></span>
+          🌙 ミッドナイトネイビー
+        </button>
+      </div>
+    </div>
+
+    <div class="look-block">
+      <div class="look-title">② 背景</div>
+      <p class="note">背景の動画と明るさは、①の色とは別に決められます。</p>
+      <select id="bgSelect" aria-label="背景">
+        <option value="shuffle">🇺🇸 毎回ちがう動画</option>
+        <optgroup label="アメリカの動画">
+          <option value="nyc-taxi">🚕 ニューヨークの街とイエローキャブ</option>
+          <option value="brooklyn-bridge">🌉 ブルックリン橋とマンハッタン</option>
+          <option value="times-square-night">🌃 タイムズスクエアの夜</option>
+          <option value="times-square-timelapse">⏩ タイムズスクエア（早送り）</option>
+          <option value="golden-gate-day">☀️ ゴールデンゲートブリッジ（昼）</option>
+          <option value="golden-gate-night">🌙 ゴールデンゲートブリッジ（夜）</option>
+        </optgroup>
+        <optgroup label="アニメ（通信なしで動く）">
+          <option value="nyc">🗽 ニューヨークの夜</option>
+          <option value="route66">🛣️ ルート66の夕日</option>
+          <option value="goldengate">🌁 ゴールデンゲートの霧</option>
+        </optgroup>
+        <option value="video">🎬 自分の動画</option>
+        <option value="off">背景なし</option>
+      </select>
+      <button class="small-btn" id="bgVideoBtn">🎬 自分の動画を選ぶ</button>
+      <input type="file" id="bgFile" accept="video/*" hidden>
+      <label class="bright-row">
+        <span>背景の明るさ</span>
+        <input type="range" id="bgBright" min="40" max="140" step="5" value="100">
+        <b id="bgBrightVal">100%</b>
+      </label>
+    </div>
+  </section>
   <p class="credit">背景動画：Pexels（無料素材）</p>
 
   <section class="panel" id="syncPanel">
@@ -378,6 +427,21 @@ footer select {
 
 <script>
 'use strict';
+const APP_VERSION = '2026-10-08.6';
+(function checkUpdate() {
+  async function check() {
+    try {
+      const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
+      const { v } = await r.json();
+      if (v && v !== APP_VERSION && sessionStorage.getItem('memo.reloadedFor') !== v) {
+        sessionStorage.setItem('memo.reloadedFor', v);
+        location.replace(location.pathname + '?v=' + encodeURIComponent(v));
+      }
+    } catch {}
+  }
+  check();
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+})();
 
 /* ---------- ジャンル定義 ---------- */
 const CATS = {
@@ -688,7 +752,7 @@ function render() {
   $('undoneOnly').classList.toggle('on', prefs.undoneOnly);
   document.documentElement.dataset.theme = prefs.theme;
   document.querySelector('meta[name=theme-color]').content = prefs.theme === 'light' ? '#F5F7FB' : '#121A2B';
-  $('themeBtn').textContent = prefs.theme === 'light' ? '🌙 ミッドナイトネイビーにする' : '☀️ クリアホワイトにする';
+  document.querySelectorAll('[data-theme-opt]').forEach(b => b.classList.toggle('on', b.dataset.themeOpt === prefs.theme));
 
   const root = $('list');
   root.innerHTML = '';
@@ -745,7 +809,8 @@ $('viewCat').onclick = () => { prefs.view = 'cat'; savePrefs(); render(); };
 $('viewDay').onclick = () => { prefs.view = 'day'; savePrefs(); render(); };
 $('undoneOnly').onclick = () => { prefs.undoneOnly = !prefs.undoneOnly; savePrefs(); render(); };
 $('search').addEventListener('input', render);
-$('themeBtn').onclick = () => { prefs.theme = prefs.theme === 'light' ? 'dark' : 'light'; savePrefs(); render(); };
+document.querySelectorAll('[data-theme-opt]').forEach(b => b.onclick = () => { prefs.theme = b.dataset.themeOpt; savePrefs(); render(); });
+$('lookBtn').onclick = () => { $('lookPanel').classList.toggle('show'); $('lookPanel').scrollIntoView({ behavior: 'smooth' }); };
 
 $('copyBtn').onclick = async () => {
   const undone = live().filter(it => !it.done).sort((a, b) => a.createdAt - b.createdAt);
@@ -942,6 +1007,6 @@ updateHint();
 showSync();
 syncNow();
 </script>
-<script src="bg.js?v=4"></script>
+<script src="bg.js?v=6"></script>
 </body>
 </html>
