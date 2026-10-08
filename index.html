@@ -14,10 +14,10 @@
 <style>
 /*
   配色について
-  ・ミッドナイトネイビー（初期）: 深い紺の背景に、真っ白ではなく少し紫がかった
+  ・ミッドナイトネイビー: 深い紺の背景に、真っ白ではなく少し紫がかった
     オフホワイトの文字。夜や疲れている時でも目に刺さらず、落ち着いて見られる色。
-  ・ラベンダーミスト: ほんのり紫がかった白の背景に、ネイビーの文字。
-    明るい場所・朝向け。純白よりまぶしさが少ない。
+  ・クリアホワイト（初期）: 白いすりガラスのカードにネイビーの文字、アクセントはスカイブルー。
+    背景の動画を暗くせず、そのままの明るさで見せる。
   ・ジャンル色は彩度を抑えたパステル。「動詞はいつもアプリコット」のように
     英語・日本語で同じ品詞は同じ色にして、色でも覚えられるようにしている。
 */
@@ -48,29 +48,30 @@
   color-scheme: dark;
 }
 :root[data-theme="light"] {
-  --bg: #F4F2F8;          /* ラベンダーミスト（パープルホワイト） */
+  /* クリアホワイト：白いすりガラス × ネイビーの文字 × スカイブルー。動画の明るさをそのまま活かす */
+  --bg: #F5F7FB;          /* ほんのり青みのある白 */
   --surface: #FFFFFF;
-  --surface-2: #ECE9F3;
-  --border: #DDD8E8;
-  --text: #25304A;        /* ネイビーインク */
-  --sub: #6B7089;
-  --accent: #4A6FA5;      /* くすみブルー */
+  --surface-2: #EEF2F8;
+  --border: rgba(30,42,70,.10);
+  --text: #1E2A46;        /* ネイビーインク */
+  --sub: #5E6882;
+  --accent: #3D8BD9;      /* スカイブルー */
   --accent-ink: #FFFFFF;
-  --danger: #B85A5A;
-  --shadow: 0 1px 2px rgba(37,48,74,.06), 0 6px 18px rgba(37,48,74,.06);
-  --glass: rgba(255,255,255,.86);
-  --veil: rgba(244,242,248,.38);
+  --danger: #D2544A;
+  --shadow: 0 1px 2px rgba(30,42,70,.06), 0 8px 24px rgba(30,42,70,.10);
+  --glass: rgba(255,255,255,.80);
+  --veil: rgba(255,255,255,.06);      /* 動画はほぼそのままの明るさ */
 
-  --c-blue: #4A77B4;
-  --c-teal: #2F8C84;
-  --c-lavender: #7A62C4;
-  --c-apricot: #B8733A;
-  --c-sage: #5B8A3E;
-  --c-rose: #B8557A;
-  --c-butter: #9A7E1E;
-  --c-slate: #5E6A8A;
-  --c-coral: #C0583E;
-  --c-gray: #7A8196;
+  --c-blue: #2F74C8;      /* 文・フレーズ：スカイブルー */
+  --c-teal: #13958A;      /* チャンク：ミント */
+  --c-lavender: #7A5AD6;  /* 熟語：ラベンダー */
+  --c-apricot: #E07A2E;   /* 動詞：オレンジ */
+  --c-sage: #3F9A4A;      /* 名詞：グリーン */
+  --c-rose: #DB4C82;      /* 形容詞：ピンク */
+  --c-butter: #C49200;    /* 副詞：ゴールド */
+  --c-slate: #5A6B8C;     /* 前置詞など */
+  --c-coral: #E2513A;     /* スラング：コーラルレッド */
+  --c-gray: #7A8399;
   color-scheme: light;
 }
 
@@ -261,7 +262,22 @@ body.has-bg .chip-toggle, body.has-bg footer button, body.has-bg footer select, 
 }
 body.has-bg header, body.has-bg .tip, body.has-bg .lang-title, body.has-bg .day-title { text-shadow: 0 1px 3px rgba(0,0,0,.9), 0 1px 12px rgba(0,0,0,.7); }
 :root[data-theme="light"] body.has-bg header, :root[data-theme="light"] body.has-bg .tip,
-:root[data-theme="light"] body.has-bg .lang-title, :root[data-theme="light"] body.has-bg .day-title { text-shadow: 0 1px 8px rgba(255,255,255,.9); }
+:root[data-theme="light"] body.has-bg .lang-title, :root[data-theme="light"] body.has-bg .day-title { text-shadow: none; }
+:root[data-theme="light"] body.has-bg header {
+  background: var(--glass); border-radius: 18px; padding: 12px 16px; box-shadow: var(--shadow);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3); backdrop-filter: blur(14px) saturate(1.3);
+}
+:root[data-theme="light"] body.has-bg .tip,
+:root[data-theme="light"] body.has-bg .lang-title,
+:root[data-theme="light"] body.has-bg .day-title,
+:root[data-theme="light"] body.has-bg .credit {
+  display: inline-block; background: var(--glass); border-radius: 999px; padding: 3px 12px;
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+}
+:root[data-theme="light"] body.has-bg .credit { display: table; margin: 10px auto 0; opacity: 1; }
+:root[data-theme="light"] .group-head { background: color-mix(in srgb, var(--cat) 9%, transparent); }
+:root[data-theme="light"] .btn-add { box-shadow: 0 4px 12px rgba(61,139,217,.35); }
+:root[data-theme="light"] .video-bright { filter: brightness(1.06) saturate(1.12); }
 footer select {
   border: 1px solid var(--border); background: var(--surface); color: var(--sub);
   border-radius: 999px; padding: 7px 12px; font-size: 12.5px; -webkit-appearance: none; appearance: none;
@@ -500,7 +516,8 @@ function savePrefs() {
   try { localStorage.setItem(PREF, JSON.stringify(prefs)); } catch {}
 }
 let items = load(KEY, []);
-let prefs = Object.assign({ view: 'cat', theme: 'dark', undoneOnly: false, closed: {} }, load(PREF, {}));
+let prefs = Object.assign({ view: 'cat', theme: 'light', undoneOnly: false, closed: {} }, load(PREF, {}));
+if (!prefs.brightV2) { prefs.theme = 'light'; prefs.brightV2 = true; savePrefs(); }
 let openId = null;
 
 // 以前「日本語 English」の順で入れて分かれていなかったメモを分け直す
@@ -673,8 +690,8 @@ function render() {
   $('viewDay').classList.toggle('on', prefs.view === 'day');
   $('undoneOnly').classList.toggle('on', prefs.undoneOnly);
   document.documentElement.dataset.theme = prefs.theme;
-  document.querySelector('meta[name=theme-color]').content = prefs.theme === 'light' ? '#F4F2F8' : '#121A2B';
-  $('themeBtn').textContent = prefs.theme === 'light' ? '🌙 ミッドナイトネイビーにする' : '☀️ ラベンダーミストにする';
+  document.querySelector('meta[name=theme-color]').content = prefs.theme === 'light' ? '#F5F7FB' : '#121A2B';
+  $('themeBtn').textContent = prefs.theme === 'light' ? '🌙 ミッドナイトネイビーにする' : '☀️ クリアホワイトにする';
 
   const root = $('list');
   root.innerHTML = '';
@@ -928,6 +945,6 @@ updateHint();
 showSync();
 syncNow();
 </script>
-<script src="bg.js?v=2"></script>
+<script src="bg.js?v=3"></script>
 </body>
 </html>

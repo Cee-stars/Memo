@@ -17,7 +17,7 @@ const canvas = document.createElement('canvas');
 canvas.className = 'bg-layer';
 canvas.setAttribute('aria-hidden', 'true');
 const video = document.createElement('video');
-video.className = 'bg-layer';
+video.className = 'bg-layer video-bright';
 video.muted = true; video.loop = true; video.playsInline = true; video.autoplay = true;
 video.setAttribute('muted', ''); video.setAttribute('playsinline', ''); video.setAttribute('aria-hidden', 'true');
 const overlay = document.createElement('div');
@@ -329,11 +329,11 @@ async function idbPut(key, val) {
 
 /* ---------- 本物の動画（Pexels の無料動画を縦長・音なしに変換して同梱） ---------- */
 const VIDEOS = {
-  'nyc-taxi':               { anim: 'nyc' },
-  'brooklyn-bridge':        { anim: 'nyc' },
+  'nyc-taxi':               { anim: 'nyc', day: true },
+  'brooklyn-bridge':        { anim: 'nyc', day: true },
   'times-square-night':     { anim: 'nyc' },
-  'times-square-timelapse': { anim: 'nyc' },
-  'golden-gate-day':        { anim: 'goldengate' },
+  'times-square-timelapse': { anim: 'nyc', day: true },
+  'golden-gate-day':        { anim: 'goldengate', day: true },
   'golden-gate-night':      { anim: 'goldengate' },
 };
 const VIDEO_KEYS = Object.keys(VIDEOS);
@@ -351,7 +351,9 @@ let currentScene = null, videoURL = null, playingVideo = false, applyId = 0;
 function pickVideo() {
   // 前回と違う動画にする
   const prev = lsGet(PREF_KEY + '.lastVideo');
-  const pool = VIDEO_KEYS.filter(k => k !== prev);
+  // 明るいテーマの時は昼の動画から選ぶ（夜の動画はメニューから選べる）
+  const light = document.documentElement.dataset.theme === 'light';
+  const pool = VIDEO_KEYS.filter(k => k !== prev && (!light || VIDEOS[k].day));
   const k = pool[(Math.random() * pool.length) | 0];
   lsSet(PREF_KEY + '.lastVideo', k);
   return k;
