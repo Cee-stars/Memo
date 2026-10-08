@@ -327,14 +327,16 @@ async function idbPut(key, val) {
   });
 }
 
-/* ---------- 本物の動画（Pexels の無料動画を縦長・音なしに変換して同梱） ---------- */
+/* ---------- 本物の動画（Pexels の無料4K動画を縦長・音なしに編集して同梱） ----------
+   videos/4k/*.mp4 … 4K（HEVC。iPhone の Safari 向け、縦 2160px 以上）
+   videos/*.mp4    … 軽量版（H.264 540×960。HEVC が使えない時や「軽量」を選んだ時） */
 const VIDEOS = {
-  'nyc-taxi':               { anim: 'nyc', day: true },
-  'brooklyn-bridge':        { anim: 'nyc', day: true },
-  'times-square-night':     { anim: 'nyc' },
-  'times-square-timelapse': { anim: 'nyc', day: true },
-  'golden-gate-day':        { anim: 'goldengate', day: true },
-  'golden-gate-night':      { anim: 'goldengate' },
+  'grand-central-taxi':     { anim: 'nyc' },
+  'brooklyn-bridge':        { anim: 'nyc' },
+  'times-square-day':       { anim: 'nyc' },
+  'times-square-timelapse': { anim: 'nyc' },
+  'yellow-cab':             { anim: 'nyc' },
+  'golden-gate-aerial':     { anim: 'goldengate' },
 };
 const VIDEO_KEYS = Object.keys(VIDEOS);
 
@@ -348,11 +350,20 @@ if (!lsGet(PREF_KEY + '.migrated2')) {
 let draw = null, raf = 0, last = 0, t0 = performance.now(), size = { w: 0, h: 0 };
 let currentScene = null, videoURL = null, playingVideo = false, applyId = 0;
 
+/* 画質：4K（初期）/ 軽量。HEVC を再生できない端末では自動で軽量版 */
+const QUALITY_KEY = 'memo.bg.quality';
+const canHEVC = !!video.canPlayType && video.canPlayType('video/mp4; codecs="hvc1"') !== '';
+const use4K = () => (lsGet(QUALITY_KEY) || '4k') === '4k' && canHEVC;
+
+// もう無い動画（入れ替え前の動画など）を選んでいた時は「毎回ちがう動画」に戻す
+if (!VIDEOS[mode] && !SCENES[mode] && !['shuffle', 'video', 'off'].includes(mode)) {
+  mode = 'shuffle'; lsSet(PREF_KEY, mode);
+}
+
 function pickVideo() {
   // 前回と違う動画にする
   const prev = lsGet(PREF_KEY + '.lastVideo');
-  // テーマに関係なく明るい昼の動画から選ぶ（夜の動画はメニューから選べる）
-  const pool = VIDEO_KEYS.filter(k => k !== prev && VIDEOS[k].day);
+  const pool = VIDEO_KEYS.filter(k => k !== prev);
   const k = pool[(Math.random() * pool.length) | 0];
   lsSet(PREF_KEY + '.lastVideo', k);
   return k;
@@ -420,7 +431,8 @@ async function apply() {
   }
   if (SCENES[mode]) { showAnim(mode); return; }
   const key = VIDEOS[mode] ? mode : pickVideo();
-  showVideo(`videos/${key}.mp4`, `videos/${key}.jpg`, VIDEOS[key].anim);
+  const dir = use4K() ? 'videos/4k/' : 'videos/';
+  showVideo(`${dir}${key}.mp4`, `videos/${key}.jpg`, VIDEOS[key].anim);
 }
 
 let resizeTimer;
@@ -484,6 +496,14 @@ function setBright(pct) {
 }
 setBright(Number(lsGet(BRIGHT_KEY)) || 100);
 if (brightIn) brightIn.addEventListener('input', () => { setBright(+brightIn.value); lsSet(BRIGHT_KEY, brightIn.value); });
+
+const qualIn = document.getElementById('bgQuality');
+if (qualIn) {
+  qualIn.value = lsGet(QUALITY_KEY) || '4k';
+  qualIn.addEventListener('change', () => { lsSet(QUALITY_KEY, qualIn.value); apply(); });
+  const note = document.getElementById('bgQualityNote');
+  if (note && !canHEVC) note.textContent = 'この端末は4K動画（HEVC）に対応していないため、軽量版を流します。';
+}
 
 apply();
 refreshSelect();

@@ -10,14 +10,12 @@
 - 背景：アメリカの本物の動画（`videos/`）が自動で流れる。通信なしで動くアニメ（ニューヨーク / ルート66 / ゴールデンゲート）や、「🎬 自分の動画を選ぶ」で手持ちの動画も選べる
 
 ## 背景動画のクレジット
-[Pexels](https://www.pexels.com/license/) の無料動画を、縦長・音なし・約14秒に編集して使っています。
+[Pexels](https://www.pexels.com/license/) の無料4K動画を、縦長・音なし・約8〜14秒に編集して使っています。
+`videos/4k/` は 4K（HEVC、縦 2160px 以上）、`videos/` 直下は軽量版（H.264 540×960）です。
 
-- ニューヨークの街とイエローキャブ — https://www.pexels.com/video/busy-street-in-new-york-854614/
+- グランドセントラル駅とイエローキャブ — https://www.pexels.com/video/a-vertical-video-of-yellow-cabs-on-the-street-of-new-york-5834562/
+- 走るイエローキャブ — https://www.pexels.com/video/close-up-shot-of-a-moving-taxi-5834550/
 - ブルックリン橋とマンハッタン — https://www.pexels.com/video/new-york-city-14306358/
-- タイムズスクエアの夜 — https://www.pexels.com/video/footage-of-people-and-surroundings-of-the-busy-time-square-street-3202634/
+- タイムズスクエア — https://www.pexels.com/video/time-square-new-york-17898698/
 - タイムズスクエア（早送り） — https://www.pexels.com/video/time-lapse-of-people-visiting-times-square-11494571/
-- ゴールデンゲートブリッジ（昼） — https://www.pexels.com/video/golden-gate-bridge-16202755/
-- ゴールデンゲートブリッジ（夜） — https://www.pexels.com/video/a-video-footage-of-golden-gate-bridge-at-night-4604126/
-- テーマ: クリアホワイト（明・初期）/ ミッドナイトネイビー（暗）
-- 「☁️ 同期設定」で GitHub のトークン（gist 権限だけ）を入れると、非公開 Gist 経由で端末間を自動同期
-- 同期しない場合、データはブラウザ内（localStorage）だけに保存。ときどき「バックアップ保存」推奨
+- ゴールデンゲートブリッジとサンフランシスコ — https://www.pexels.com/video/an-aerial-footage-of-the-golden-gate-bridge-4560737/

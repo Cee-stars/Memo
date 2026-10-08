@@ -372,14 +372,14 @@ footer select {
       <p class="note">背景の動画と明るさは、①の色とは別に決められます。</p>
       <select id="bgSelect" aria-label="背景">
         <option value="shuffle">🇺🇸 毎回ちがう動画</option>
-        <optgroup label="アメリカの動画">
-          <option value="nyc-taxi">🚕 ニューヨークの街とイエローキャブ</option>
-          <option value="brooklyn-bridge">🌉 ブルックリン橋とマンハッタン</option>
-          <option value="times-square-night">🌃 タイムズスクエアの夜</option>
-          <option value="times-square-timelapse">⏩ タイムズスクエア（早送り）</option>
-          <option value="golden-gate-day">☀️ ゴールデンゲートブリッジ（昼）</option>
-          <option value="golden-gate-night">🌙 ゴールデンゲートブリッジ（夜）</option>
-        </optgroup>
+        <optgroup label="アメリカの動画（4K）">
+        <option value="grand-central-taxi">🚕 グランドセントラル駅とイエローキャブ</option>
+        <option value="yellow-cab">🚖 走るイエローキャブ</option>
+        <option value="brooklyn-bridge">🌉 ブルックリン橋とマンハッタン</option>
+        <option value="times-square-day">🗽 タイムズスクエア</option>
+        <option value="times-square-timelapse">⏩ タイムズスクエア（早送り）</option>
+        <option value="golden-gate-aerial">🌁 ゴールデンゲートブリッジとサンフランシスコ</option>
+      </optgroup>
         <optgroup label="アニメ（通信なしで動く）">
           <option value="nyc">🗽 ニューヨークの夜</option>
           <option value="route66">🛣️ ルート66の夕日</option>
@@ -390,6 +390,14 @@ footer select {
       </select>
       <button class="small-btn" id="bgVideoBtn">🎬 自分の動画を選ぶ</button>
       <input type="file" id="bgFile" accept="video/*" hidden>
+      <label class="bright-row">
+        <span>画質</span>
+        <select id="bgQuality" style="flex:1;margin:0">
+          <option value="4k">4K（きれい）</option>
+          <option value="light">軽量（通信量を節約）</option>
+        </select>
+      </label>
+      <p class="note" id="bgQualityNote">4K は1本 数MB〜十数MB。一度見た動画はスマホに残るので、毎回ダウンロードはしません。</p>
       <label class="bright-row">
         <span>背景の明るさ</span>
         <input type="range" id="bgBright" min="40" max="140" step="5" value="100">
@@ -427,7 +435,7 @@ footer select {
 
 <script>
 'use strict';
-const APP_VERSION = '2026-10-08.6';
+const APP_VERSION = '2026-10-08.7';
 (function checkUpdate() {
   async function check() {
     try {
@@ -1007,6 +1015,6 @@ updateHint();
 showSync();
 syncNow();
 </script>
-<script src="bg.js?v=6"></script>
+<script src="bg.js?v=7"></script>
 </body>
 </html>
