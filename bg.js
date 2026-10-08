@@ -351,9 +351,8 @@ let currentScene = null, videoURL = null, playingVideo = false, applyId = 0;
 function pickVideo() {
   // 前回と違う動画にする
   const prev = lsGet(PREF_KEY + '.lastVideo');
-  // 明るいテーマの時は昼の動画から選ぶ（夜の動画はメニューから選べる）
-  const light = document.documentElement.dataset.theme === 'light';
-  const pool = VIDEO_KEYS.filter(k => k !== prev && (!light || VIDEOS[k].day));
+  // テーマに関係なく明るい昼の動画から選ぶ（夜の動画はメニューから選べる）
+  const pool = VIDEO_KEYS.filter(k => k !== prev && VIDEOS[k].day);
   const k = pool[(Math.random() * pool.length) | 0];
   lsSet(PREF_KEY + '.lastVideo', k);
   return k;
