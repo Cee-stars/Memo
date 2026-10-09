@@ -274,7 +274,7 @@ footer button {
 }
 .bg-overlay { position: fixed; inset: 0; z-index: -1; display: none; background: var(--veil); pointer-events: none; }
 body.has-bg .bg-overlay { display: block; }
-body.has-bg .composer, body.has-bg .group, body.has-bg .seg, body.has-bg .search,
+body.has-bg .composer, body.has-bg .todo-card, body.has-bg .group, body.has-bg .seg, body.has-bg .search,
 body.has-bg .chip-toggle, body.has-bg footer button, body.has-bg footer select, body.has-bg .panel {
   background: var(--glass);
   -webkit-backdrop-filter: blur(14px) saturate(1.2);
@@ -300,6 +300,37 @@ footer select {
   border-radius: 999px; padding: 7px 12px; font-size: 12.5px; -webkit-appearance: none; appearance: none;
 }
 .credit { text-align: center; font-size: 10.5px; color: var(--sub); opacity: .7; margin: 10px 0 0; }
+.todo-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  padding: 12px 14px; box-shadow: var(--shadow); margin-bottom: 8px;
+}
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.sec-title { font-size: 15px; font-weight: 700; }
+.sec-sub { font-size: 12px; color: var(--sub); }
+.en-head { margin: 22px 0 10px; }
+body.has-bg .en-head {
+  display: inline-flex; background: var(--glass); border-radius: 999px; padding: 5px 14px;
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+}
+.todo-add { display: flex; gap: 8px; margin: 10px 0 4px; }
+.todo-add input {
+  font-size: 16px;
+  flex: 1; min-width: 0; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px;
+  padding: 9px 12px; font-size: 16px; outline: none;
+}
+.todo-add input:focus { border-color: var(--accent); }
+.todo-list { list-style: none; margin: 4px 0 0; padding: 0; }
+.todo-item { border-top: 1px solid var(--border); }
+.todo-item:first-child { border-top: none; }
+.todo-row { display: flex; align-items: flex-start; gap: 10px; padding: 9px 2px; }
+.todo-item .check { border-color: var(--accent); }
+.todo-item.done .check { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.todo-text { flex: 1; min-width: 0; font-size: 16px; word-break: break-word; cursor: pointer; padding-top: 1px; }
+.todo-item.done .todo-text { text-decoration: line-through; text-decoration-thickness: 1.5px; color: var(--sub); opacity: .75; }
+.todo-item .editor { padding: 0 2px 10px 32px; }
+.todo-item.open .editor { display: flex; }
+.todo-empty { color: var(--sub); font-size: 13.5px; padding: 8px 2px; }
+.todo-note { font-size: 11px; color: var(--sub); margin: 6px 2px 0; opacity: .85; }
 .toast {
   position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 24px);
   transform: translateX(-50%) translateY(20px);
@@ -319,6 +350,21 @@ footer select {
     </div>
     <div class="stats"><div id="stats"></div><div class="sync-status" id="syncStatus"></div></div>
   </header>
+
+  <section class="todo-card">
+    <div class="sec-head">
+      <span class="sec-title">✅ 今日のやること</span>
+      <span class="sec-sub" id="todoCount"></span>
+    </div>
+    <div class="todo-add">
+      <input id="todoInput" placeholder="やることを入力（例: 牛乳を買う）" autocomplete="off" enterkeyhint="done">
+      <button class="btn-add" id="todoAddBtn" disabled>追加</button>
+    </div>
+    <ul class="todo-list" id="todoList"></ul>
+    <p class="todo-note">チェックすると横線が付きます。日付が変わると、今日のやることはリセットされます。</p>
+  </section>
+
+  <div class="sec-head en-head"><span class="sec-title">📘 英語メモ</span></div>
 
   <div class="composer">
     <textarea id="input" rows="1" placeholder="単語・フレーズを入力（例: honestly = 正直に）" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
@@ -435,7 +481,7 @@ footer select {
 
 <script>
 'use strict';
-const APP_VERSION = '2026-10-08.7';
+const APP_VERSION = '2026-10-09.1';
 (function checkUpdate() {
   async function check() {
     try {
@@ -579,7 +625,9 @@ function save(local) {
   try { localStorage.setItem(KEY, JSON.stringify(items)); } catch { toast('保存できませんでした'); }
   if (!local) scheduleSync();
 }
-const live = () => items.filter(it => !it.deleted);
+const live = () => items.filter(it => !it.deleted && it.kind !== 'todo');   // 英語メモ
+// やること：今日作ったものだけ表示（前の日の分は画面から消える。データは残す）
+const todosToday = () => items.filter(it => !it.deleted && it.kind === 'todo' && dayKey(it.createdAt) === dayKey(Date.now()));
 const touch = it => { it.updatedAt = Date.now(); };
 function savePrefs() {
   try { localStorage.setItem(PREF, JSON.stringify(prefs)); } catch {}
@@ -593,7 +641,7 @@ let openId = null;
 (function splitOldItems() {
   let changed = false;
   for (const it of items) {
-    if (it.deleted || it.meaning) continue;
+    if (it.deleted || it.meaning || it.kind === 'todo') continue;
     const p = parseLine(it.term);
     if (p && p.meaning && p.term !== it.term) {
       it.term = p.term; it.meaning = p.meaning;
@@ -744,14 +792,46 @@ function renderByDay(list, root) {
   }
 }
 
+function renderTodos() {
+  const ul = $('todoList');
+  ul.innerHTML = '';
+  const all = todosToday();
+  const done = all.filter(t => t.done).length;
+  $('todoCount').textContent = all.length ? `${done} / ${all.length} 完了` : '';
+  if (!all.length) { ul.append(el('li', { class: 'todo-empty' }, '今日のやることはまだありません')); return; }
+  // まだのものが上、チェックしたものは下へ（消さずに横線）
+  all.sort((a, b) => (a.done - b.done) || (a.done ? (a.doneAt || 0) - (b.doneAt || 0) : a.createdAt - b.createdAt));
+  for (const t of all) {
+    const li = el('li', { class: 'todo-item' + (t.done ? ' done' : '') + (openId === t.id ? ' open' : '') });
+    li.append(el('div', { class: 'todo-row' },
+      el('button', { class: 'check', 'aria-label': '完了', onclick: () => {
+        t.done = !t.done; t.doneAt = t.done ? Date.now() : null; touch(t); save(); render();
+      } }, '✓'),
+      el('div', { class: 'todo-text', onclick: () => { openId = openId === t.id ? null : t.id; render(); } }, t.term)
+    ));
+    if (openId === t.id) {
+      const inp = el('input', { value: t.term });
+      li.append(el('div', { class: 'editor' }, inp,
+        el('button', { class: 'small save', onclick: () => {
+          const v = inp.value.trim(); if (!v) return;
+          t.term = v; touch(t); openId = null; save(); render();
+        } }, '保存'),
+        el('button', { class: 'small del', onclick: () => {
+          Object.assign(t, { deleted: true, term: '' }); touch(t); openId = null; save(); render();
+        } }, '削除')));
+    }
+    ul.append(li);
+  }
+}
+
 function render() {
   const now = Date.now();
   $('todayDate').textContent = fmtLong(now);
-  const todayN = live().filter(it => dayKey(it.createdAt) === dayKey(now)).length;
   const undone = live().filter(it => !it.done).length;
+  const todoLeft = todosToday().filter(t => !t.done).length;
   $('stats').innerHTML = '';
   $('stats').append(
-    el('div', {}, '今日 ', el('b', {}, String(todayN)), ' 件'),
+    el('div', {}, 'やること 残り ', el('b', {}, String(todoLeft))),
     el('div', {}, '未転記 ', el('b', {}, String(undone)), ' / 全 ', el('b', {}, String(live().length)))
   );
 
@@ -761,6 +841,8 @@ function render() {
   document.documentElement.dataset.theme = prefs.theme;
   document.querySelector('meta[name=theme-color]').content = prefs.theme === 'light' ? '#F5F7FB' : '#121A2B';
   document.querySelectorAll('[data-theme-opt]').forEach(b => b.classList.toggle('on', b.dataset.themeOpt === prefs.theme));
+
+  renderTodos();
 
   const root = $('list');
   root.innerHTML = '';
@@ -812,6 +894,23 @@ input.addEventListener('keydown', e => {
 });
 $('addBtn').addEventListener('click', () => { addFromInput(); input.focus(); });
 
+/* ---------- やることの追加 ---------- */
+const todoIn = $('todoInput');
+function addTodo() {
+  const v = todoIn.value.trim();
+  if (!v) return;
+  const now = Date.now();
+  items.push({ id: now.toString(36) + 't' + Math.random().toString(36).slice(2, 6), kind: 'todo', term: v, meaning: '',
+    cat: 'todo', done: false, createdAt: now, updatedAt: now });
+  todoIn.value = ''; $('todoAddBtn').disabled = true;
+  save(); render();
+}
+todoIn.addEventListener('input', () => { $('todoAddBtn').disabled = !todoIn.value.trim(); });
+todoIn.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); addTodo(); }
+});
+$('todoAddBtn').addEventListener('click', () => { addTodo(); todoIn.focus(); });
+
 /* ---------- ツールバー・フッター ---------- */
 $('viewCat').onclick = () => { prefs.view = 'cat'; savePrefs(); render(); };
 $('viewDay').onclick = () => { prefs.view = 'day'; savePrefs(); render(); };
@@ -835,7 +934,7 @@ $('copyBtn').onclick = async () => {
 };
 
 $('exportBtn').onclick = () => {
-  const blob = new Blob([JSON.stringify({ app: 'memo', version: 1, items: live() }, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify({ app: 'memo', version: 1, items: items.filter(it => !it.deleted) }, null, 2)], { type: 'application/json' });
   const a = el('a', { href: URL.createObjectURL(blob), download: `memo-backup-${new Date().toISOString().slice(0, 10)}.json` });
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
@@ -852,7 +951,7 @@ $('importFile').onchange = async e => {
     let n = 0;
     for (const it of incoming) {
       if (ids.has(it.id)) continue;
-      if (!CATS[it.cat]) it.cat = classify(it.term);
+      if (it.kind !== 'todo' && !CATS[it.cat]) it.cat = classify(it.term);
       it.updatedAt = it.updatedAt || it.createdAt || Date.now();
       items.push(it); n++;
     }
