@@ -32,7 +32,10 @@
   --accent-ink: #121A2B;
   --danger: #E89A9A;
   --shadow: 0 1px 0 rgba(255,255,255,.03), 0 8px 24px rgba(0,0,0,.25);
-  --glass: rgba(24,33,54,.80);        /* 背景アニメの上に置くカード */
+  --glass: rgba(28,34,50,.64);        /* 背景の上に置くカード（すりガラス） */
+  --glass-edge: rgba(255,255,255,.12);
+  --glass-inner: rgba(255,255,255,.07);
+  --glass-hi: rgba(255,255,255,.08);
   --veil: transparent;               /* 背景の動画はテーマに関係なく元の明るさ */
 
   --c-blue: #8FB8E8;      /* 文・フレーズ */
@@ -59,7 +62,10 @@
   --accent-ink: #FFFFFF;
   --danger: #D2544A;
   --shadow: 0 1px 2px rgba(30,42,70,.06), 0 8px 24px rgba(30,42,70,.10);
-  --glass: rgba(255,255,255,.80);
+  --glass: rgba(255,255,255,.72);     /* Apple 風のすりガラス（少しだけ透ける） */
+  --glass-edge: rgba(255,255,255,.70);
+  --glass-inner: rgba(255,255,255,.62);
+  --glass-hi: rgba(255,255,255,.85);
   --veil: transparent;
 
   --c-blue: #2F74C8;      /* 文・フレーズ：スカイブルー */
@@ -275,23 +281,40 @@ footer button {
 .bg-overlay { position: fixed; inset: 0; z-index: -1; display: none; background: var(--veil); pointer-events: none; }
 body.has-bg .bg-overlay { display: block; }
 body.has-bg .composer, body.has-bg .todo-card, body.has-bg .group, body.has-bg .seg, body.has-bg .search,
-body.has-bg .chip-toggle, body.has-bg footer button, body.has-bg footer select, body.has-bg .panel {
+body.has-bg .chip-toggle, body.has-bg footer button, body.has-bg footer select, body.has-bg .panel,
+body.has-bg .tip, body.has-bg .lang-title, body.has-bg .day-title, body.has-bg .credit, body.has-bg .en-head {
   background: var(--glass);
-  -webkit-backdrop-filter: blur(14px) saturate(1.2);
-  backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid var(--glass-edge);
+  box-shadow: inset 0 1px 0 var(--glass-hi), 0 8px 28px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.06);
+  -webkit-backdrop-filter: blur(28px) saturate(1.8);
+  backdrop-filter: blur(28px) saturate(1.8);
 }
-body.has-bg header {
-  background: var(--glass); border-radius: 18px; padding: 12px 16px; box-shadow: var(--shadow);
-  -webkit-backdrop-filter: blur(14px) saturate(1.3); backdrop-filter: blur(14px) saturate(1.3);
-}
-body.has-bg .tip,
-body.has-bg .lang-title,
-body.has-bg .day-title,
-body.has-bg .credit {
-  display: inline-block; background: var(--glass); border-radius: 999px; padding: 3px 12px;
-  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+body.has-bg .tip, body.has-bg .lang-title, body.has-bg .day-title, body.has-bg .credit {
+  display: inline-block; border-radius: 999px; padding: 3px 12px;
 }
 body.has-bg .credit { display: table; margin: 10px auto 0; opacity: 1; }
+/* カードの中の入力欄や選択中ボタンも、少し透ける白に */
+body.has-bg .todo-add input, body.has-bg .editor input, body.has-bg .editor select, body.has-bg .editor .small:not(.save),
+body.has-bg .seg button.on, body.has-bg .panel select, body.has-bg .small-btn, body.has-bg .theme-opt {
+  background: var(--glass-inner);
+  border-color: var(--glass-edge);
+}
+body.has-bg .seg button.on { box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+body.has-bg .item, body.has-bg .todo-item { border-top-color: rgba(127,127,127,.18); }
+
+/* 一番上の日付：背景なし。iPhone のロック画面のように白い文字＋やわらかい影 */
+body.has-bg header { padding: 6px 4px 2px; }
+body.has-bg .today-label, body.has-bg .today-date, body.has-bg .stats, body.has-bg .stats b, body.has-bg .sync-status {
+  color: #FFFFFF;
+  text-shadow: 0 1px 2px rgba(0,0,0,.45), 0 2px 18px rgba(0,0,0,.35);
+}
+body.has-bg .today-date { font-size: 30px; letter-spacing: .01em; }
+body.has-bg .stats { font-weight: 600; }
+/* 日付の後ろだけ、ロック画面のように上からうっすら暗く（枠は付けない） */
+body.has-bg::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 240px; z-index: -1; pointer-events: none;
+  background: linear-gradient(to bottom, rgba(0,0,0,.38) 0, rgba(0,0,0,.18) 45%, rgba(0,0,0,0) 100%);
+}
 :root[data-theme="light"] .group-head { background: color-mix(in srgb, var(--cat) 9%, transparent); }
 :root[data-theme="light"] .btn-add { box-shadow: 0 4px 12px rgba(61,139,217,.35); }
 .bg-layer { filter: brightness(var(--bg-bright, 1)) saturate(1.1); }
@@ -308,10 +331,7 @@ footer select {
 .sec-title { font-size: 15px; font-weight: 700; }
 .sec-sub { font-size: 12px; color: var(--sub); }
 .en-head { margin: 22px 0 10px; }
-body.has-bg .en-head {
-  display: inline-flex; background: var(--glass); border-radius: 999px; padding: 5px 14px;
-  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-}
+body.has-bg .en-head { display: inline-flex; border-radius: 999px; padding: 5px 14px; }
 .todo-add { display: flex; gap: 8px; margin: 10px 0 4px; }
 .todo-add input {
   font-size: 16px;
@@ -481,7 +501,7 @@ body.has-bg .en-head {
 
 <script>
 'use strict';
-const APP_VERSION = '2026-10-09.1';
+const APP_VERSION = '2026-10-09.3';
 (function checkUpdate() {
   async function check() {
     try {
