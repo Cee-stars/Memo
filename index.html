@@ -186,6 +186,12 @@ header { display: flex; align-items: flex-end; justify-content: space-between; g
 .chev { color: var(--sub); font-size: 12px; transition: transform .2s; }
 .group.closed .chev { transform: rotate(-90deg); }
 .group.closed .items { display: none; }
+/* カードの中を走るタクシー（文字の後ろ） */
+.group { position: relative; }
+.group > :not(.drift-layer) { position: relative; z-index: 1; }
+.drift-layer { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: .85; }
+.switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; }
+.switch-row input { width: 44px; height: 26px; accent-color: var(--accent); }
 
 .items { list-style: none; margin: 0; padding: 0; }
 .item { border-top: 1px solid var(--border); }
@@ -470,6 +476,15 @@ body.has-bg .en-head { display: inline-flex; border-radius: 999px; padding: 5px 
         <b id="bgBrightVal">100%</b>
       </label>
     </div>
+
+    <div class="look-block">
+      <div class="look-title">③ カードの中のアニメ</div>
+      <p class="note">英語メモのカードの中を、イエローキャブがドリフトしながら走ります。文字の後ろを走るので、読むのはじゃましません。</p>
+      <label class="switch-row">
+        <span>🚕 タクシーを走らせる</span>
+        <input type="checkbox" id="driftToggle" checked>
+      </label>
+    </div>
   </section>
   <p class="credit">背景動画：Pexels（無料素材）</p>
 
@@ -501,7 +516,7 @@ body.has-bg .en-head { display: inline-flex; border-radius: 999px; padding: 5px 
 
 <script>
 'use strict';
-const APP_VERSION = '2026-10-09.3';
+const APP_VERSION = '2026-10-10.1';
 (function checkUpdate() {
   async function check() {
     try {
@@ -875,6 +890,7 @@ function render() {
   }
   if (prefs.view === 'cat') renderByCat(list, root);
   else renderByDay(list, root);
+  window.MemoDrift && MemoDrift.refresh();
 }
 
 /* ---------- 入力 ---------- */
@@ -1135,5 +1151,6 @@ showSync();
 syncNow();
 </script>
 <script src="bg.js?v=7"></script>
+<script src="drift.js?v=1"></script>
 </body>
 </html>
